@@ -1,0 +1,1 @@
+"""Attempt lifecycle: start, step, finish, abandon. See §6.6."""

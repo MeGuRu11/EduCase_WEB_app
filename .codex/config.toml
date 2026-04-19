@@ -1,0 +1,19 @@
+# EpiCase — Codex CLI Configuration
+
+[model]
+default = "gpt-5.4-codex"
+
+[features]
+multi_agent = true
+
+[approval]
+default = "auto-edit"
+
+[sandbox]
+default_mode = "workspace-write"
+
+project_doc_fallback_filenames = ["CLAUDE.md"]
+
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp@latest"]

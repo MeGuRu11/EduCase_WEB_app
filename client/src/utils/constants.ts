@@ -1,0 +1,1 @@
+// NODE_TYPES, EDGE_TYPES, ROLES constants

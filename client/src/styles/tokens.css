@@ -1,0 +1,104 @@
+/*
+ * EpiCase — Design tokens
+ * Source: design/DESIGN_SYSTEM.md §10.1
+ * Do NOT hardcode hex colors in components — use these tokens.
+ */
+
+@import "tailwindcss";
+
+@theme {
+  /* ── Brand palette ──────────────────────────────────────── */
+  --color-royal:     #5680E9;   /* primary: кнопки, ссылки, активные пункты */
+  --color-sky:       #84CEEB;   /* info: data-узлы, подсветка */
+  --color-cyan:      #5AB9EA;   /* secondary: hover, второстепенные акценты */
+  --color-lavender:  #C1C8E4;   /* surface: границы, disabled */
+  --color-purple:    #8860D0;   /* accent: teacher/admin, CTA "Опубликовать" */
+
+  /* ── Utility / semantic ─────────────────────────────────── */
+  --color-success:   #10B981;   /* is_correct=true, passed, success-toast */
+  --color-warning:   #F59E0B;   /* partial, timer running out */
+  --color-danger:    #EF4444;   /* is_correct=false, error, blocked */
+
+  /* ── Foreground / text ──────────────────────────────────── */
+  --color-fg:        #0F172A;   /* main text, dark icons */
+  --color-fg-muted:  #64748B;   /* secondary text, placeholders */
+
+  /* ── Background / surface ───────────────────────────────── */
+  --color-bg:        #FFFFFF;   /* cards, modals */
+  --color-surface:   #F8FAFC;   /* app background */
+  --color-border:    #E2E8F0;   /* borders, dividers */
+
+  /* ── Radius ─────────────────────────────────────────────── */
+  --radius-card:     12px;
+  --radius-modal:    16px;
+
+  /* ── Shadow ─────────────────────────────────────────────── */
+  --shadow-sm:       0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md:       0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-lg:       0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
+/* ── Global baseline ────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+}
+
+html, body {
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Focus ring utility (DESIGN_SYSTEM §7.7) ────────────────── */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-royal) 60%, transparent);
+  outline-offset: 2px;
+}
+
+/* ── Tabular numbers (DESIGN_SYSTEM §3.3) ───────────────────── */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Timer pulsation (DESIGN_SYSTEM §7.3) ───────────────────── */
+@keyframes epicase-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+.timer-warning {
+  animation: epicase-pulse 2s ease-in-out infinite;
+  color: var(--color-warning);
+}
+.timer-danger {
+  animation: epicase-pulse 1s ease-in-out infinite;
+  color: var(--color-danger);
+}
+
+/* ── Maintenance mode banner (ADDENDUM §T.5) ────────────────── */
+.maintenance-banner {
+  background: var(--color-danger);
+  color: #fff;
+  padding: 12px 24px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ── Dark mode preparation (DESIGN_SYSTEM §9 — NOT v1.0) ────── */
+/* Uncomment when dark mode is shipped in V2:
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg:        #0F172A;
+    --color-surface:   #1E293B;
+    --color-fg:        #F8FAFC;
+    --color-fg-muted:  #94A3B8;
+    --color-border:    #334155;
+  }
+}
+*/

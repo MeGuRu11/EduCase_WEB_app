@@ -1,0 +1,27 @@
+# ── WEB FRAMEWORK ────────────────────────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# ── DATABASE ─────────────────────────────────────────────────────────────────
+SQLAlchemy==2.0.36
+alembic==1.14.0
+psycopg2-binary==2.9.10
+
+# ── AUTH ─────────────────────────────────────────────────────────────────────
+bcrypt==4.2.1
+python-jose[cryptography]==3.3.0
+
+# ── VALIDATION ───────────────────────────────────────────────────────────────
+pydantic==2.9.2
+
+# ── REPORTS / EXPORT (ADDENDUM §E) ───────────────────────────────────────────
+openpyxl==3.1.5                 # XLSX export
+reportlab==4.2.5                # PDF export (NEW in v1.1)
+Pillow==11.0.0                  # image validation + resize
+
+# ── BACKGROUND JOBS (ADR-004) ────────────────────────────────────────────────
+APScheduler==3.10.4             # with SQLAlchemyJobStore — see services/scheduler.py
+
+# ── UTILITIES ────────────────────────────────────────────────────────────────
+loguru==0.7.2
+python-multipart==0.0.12

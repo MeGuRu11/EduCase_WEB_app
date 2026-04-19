@@ -1,0 +1,1 @@
+"""User CRUD logic. See §6.2."""

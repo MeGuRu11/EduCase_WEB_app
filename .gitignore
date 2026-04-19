@@ -1,0 +1,54 @@
+# Secrets
+.env
+.env.*
+!.env.example
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# IDE
+.vscode/
+.idea/
+
+# Runtime data
+server/data/media/*
+!server/data/media/.gitkeep
+server/data/media/avatars/*
+!server/data/media/avatars/.gitkeep
+server/data/media/covers/*
+!server/data/media/covers/.gitkeep
+server/data/media/nodes/*
+!server/data/media/nodes/.gitkeep
+server/data/backups/*
+!server/data/backups/.gitkeep
+
+# Release artifacts
+dist/
+*.tar
+*.tar.gz
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+htmlcov/
+.coverage
+coverage/
+
+# Agent workspaces (временные)
+_agents_repo/
+_skills*/
+_codex_agents/

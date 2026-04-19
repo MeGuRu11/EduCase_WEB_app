@@ -1,0 +1,13 @@
+# ── TESTING ──────────────────────────────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+httpx==0.28.1                   # FastAPI TestClient
+factory-boy==3.3.1              # Test fixtures
+
+# ── MIGRATION TESTS (ADR-009, SCALE.1) ───────────────────────────────────────
+testcontainers[postgres]==4.8.2  # Spin up disposable Postgres for migration tests
+
+# ── LINTING ──────────────────────────────────────────────────────────────────
+ruff==0.8.4                     # also formatter
+mypy==1.13.0                    # used by pre-commit hook

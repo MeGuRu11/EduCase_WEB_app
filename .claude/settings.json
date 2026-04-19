@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pytest *)", "Bash(python -m pytest *)",
+      "Bash(npx vitest *)", "Bash(ruff *)",
+      "Bash(npx tsc *)", "Bash(npx eslint *)",
+      "Bash(alembic *)", "Bash(docker compose *)",
+      "Bash(git diff *)", "Bash(git log *)",
+      "Bash(git status)", "Bash(git add *)", "Bash(git commit *)",
+      "Bash(npx -y @upstash/context7-mcp *)",
+      "Bash(.claude/hooks/*.sh *)", "Bash(.claude/statusline.sh)",
+      "Bash(scripts/*.sh *)"
+    ],
+    "deny": [
+      "Read(.env)", "Read(.env.*)", "Read(secrets/**)",
+      "Bash(rm -rf *)", "Bash(git push --force *)",
+      "Bash(curl *)", "Bash(wget *)", "Bash(docker compose down -v)"
+    ]
+  },
+  "model": "claude-opus-4-7",
+  "statusLine": {
+    "type": "command",
+    "command": ".claude/statusline.sh"
+  },
+  "autoMemoryEnabled": true,
+  "includeGitInstructions": true,
+  "respectGitignore": true
+}

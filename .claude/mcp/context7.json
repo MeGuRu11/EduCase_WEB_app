@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"],
+      "env": {},
+      "description": "Up-to-date library docs (fastapi, sqlalchemy, alembic, pydantic, react, @xyflow/react, zustand, @tanstack/react-query, tailwindcss, vitest). DEV MACHINE ONLY — not available on isolated VMedA server."
+    }
+  }
+}
