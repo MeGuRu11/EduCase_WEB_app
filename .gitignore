@@ -52,3 +52,6 @@ coverage/
 _agents_repo/
 _skills*/
 _codex_agents/
+
+# build logs
+build-*.log
