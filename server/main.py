@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from server.config import init_dirs, MEDIA_DIR
+from config import init_dirs, MEDIA_DIR
 
 init_dirs()
 
