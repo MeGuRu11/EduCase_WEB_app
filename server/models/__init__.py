@@ -1,6 +1,15 @@
-# Import all models here so Alembic can detect them
-# from server.models.user import User, Role, Group
-# from server.models.scenario import Scenario, ScenarioNode, ScenarioEdge
-# from server.models.attempt import Attempt, AttemptStep
-# from server.models.media import MediaFile
-# from server.models.system import SystemSetting, SystemLog
+"""Import all ORM models so Alembic's autogenerate can see them."""
+
+from models.node_content import FormTemplate, FormTemplateField
+from models.user import Discipline, Group, Role, TeacherGroup, Topic, User
+
+__all__ = [
+    "Discipline",
+    "FormTemplate",
+    "FormTemplateField",
+    "Group",
+    "Role",
+    "TeacherGroup",
+    "Topic",
+    "User",
+]

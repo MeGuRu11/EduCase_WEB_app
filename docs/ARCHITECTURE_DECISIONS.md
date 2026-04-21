@@ -454,6 +454,62 @@ Ruflo использует SPARC (Specification → Pseudocode → Architecture 
 
 ---
 
+## ADR-015: Package layout — `server/` как workspace root с plain-imports
+
+**Статус:** Принято (2026-04-20, Stage 1 precondition)
+**Контекст:** В стартере и PROJECT_DESIGN `§5.1` код импортировал модули как `from server.config import ...`, `from server.models.user import User`. Это подразумевает, что `server` — Python-пакет, а репозиторий — workspace-корень.
+
+При деплое в Docker сборка устроена иначе:
+
+```dockerfile
+# server/Dockerfile
+WORKDIR /app
+COPY . .                                    # содержимое server/ → /app
+CMD ["uvicorn", "main:app", ...]            # импорт top-level, без префикса
+```
+
+Build-контекст `./server` копируется в `/app`, поэтому внутри контейнера на sys.path лежит `/app`, а модули доступны как `config`, `main`, `models.user`. Префикс `server.` изнутри контейнера не резолвится (ModuleNotFoundError), и uvicorn падает на старте.
+
+Попытки оставить `server.X`-стиль и переписать Dockerfile (`COPY . /app/server` + `CMD uvicorn server.main:app`) на практике приводят к раздвоению: host-среда (pytest из корня) и container-среда требуют разного `PYTHONPATH`, что размывает воспроизводимость.
+
+**Решение:** фиксируем `server/` как workspace root. Весь backend-код использует **plain imports**: `from config import ...`, `from models.user import User`, `from services.auth_service import AuthService`. Префикс `server.` не применяется нигде.
+
+Под это настроено:
+
+1. **`server/Dockerfile`** — `WORKDIR /app` + `COPY . .` + `CMD ["uvicorn", "main:app", ...]`
+2. **`server/main.py`** — `from config import ...`, `from database import ...`, `from routers import ...`
+3. **`mypy.ini`** (корень репозитория) — `mypy_path = server`, `explicit_package_bases = True`
+4. **`pyproject.toml` / `pytest.ini`** — `pythonpath = ["server"]`, `testpaths = ["server/tests"]`, чтобы `pytest` из корня репозитория импортировал модули так же, как uvicorn внутри контейнера
+5. **`server/alembic.ini`** — `script_location = migrations` (путь относительно CWD `server/`), миграции импортируют модели `from models import ...`
+6. **Суб-агенты** — `.claude/agents/backend-architect.md` (и неявно все остальные) получают правило: «в server/ пиши `from services.X import Y`, не `from server.services.X import Y`»
+
+**Исключение:** в корневых утилитах вне `server/` (например, `scripts/` bash-скрипты) — не применимо, они не импортируют Python-модули из `server/`.
+
+**Обоснование:**
+- Один источник истины для PYTHONPATH (host = container = `/app ≡ server/`)
+- Минимум конфигурации: один `mypy.ini`, один `pyproject.toml`
+- Dockerfile остаётся «dumb copy» без хитростей с layout
+- Pytest из корня работает идентично pytest из `server/` (pythonpath абсолютный)
+
+**Альтернативы, отклонённые:**
+
+| Вариант | Почему нет |
+|---|---|
+| `server` как Python-пакет (`server/server/` + `setup.py`) | Дублирует имя каталога, усложняет Docker layer caching, нестандартно для FastAPI-шаблонов |
+| `src/`-layout (`src/epicase/...`) | Требует переписать все документы (§5.1, §3, §R, §S). Преимущество — только формальное соответствие PEP 420 |
+| Смешанный (`from server.X` в проде + pytest с `sys.path.insert`) | Раздвоение путей импорта. Каждая новая миграция/тест требует согласования двух режимов. Путь к регрессиям |
+
+**Когда пересматривать:** если проект извлекается в multi-service monorepo (например, добавляется отдельный `auth-service/`) или если packaging через `pip install .` становится требованием (нет в плане v1.0).
+
+**Следствия для Stage 1:**
+- В `server/dependencies.py`, `server/database.py`, `server/models/*.py`, `server/migrations/env.py` остаточные `from server.X` — переписать на plain.
+- Все новые модули Stage 1+ (`services/`, `routers/`, `schemas/`, `models/`) — исключительно plain imports.
+- `conftest.py` НЕ делает `sys.path.insert(0, ...)`. Конфигурация через `pyproject.toml` / `pytest.ini`.
+
+**Владелец:** Claude Opus 4.7 (`backend-architect`). Исполнено в precondition Stage 1.
+
+---
+
 ## Сводка ADR (обновлено)
 
 | Идея из транскрипции | Решение | ADR |
@@ -472,7 +528,8 @@ Ruflo использует SPARC (Specification → Pseudocode → Architecture 
 | **Deploy scripts** | ✅ **Принято** | **ADR-012** |
 | **At-rest БД encryption** | 🟡 Отложено до V2 (принятый риск) | **ADR-013** |
 | **Ruflo / Claude-Flow как runtime** | 🟡 Не используем; взяты 3 концепт. паттерна | **ADR-014** |
+| **Package layout: `server/` = workspace root, plain imports** | ✅ **Принято** | **ADR-015** |
 | Шардирование БД | Отклонено | (не ADR — слишком очевидно) |
 | Логирование | Уже есть | ADDENDUM §T.4 |
 
-**Итого:** 14 ADR. Из system-design-primer интегрированы 5 паттернов (REST, OWASP, ACID, indexing, latency) — см. `BEST_PRACTICES.md`. Из Ruflo — 3 концептуальных паттерна (statusline, post-stage hook, SPARC-TDD) без установки самого инструмента.
+**Итого:** 15 ADR. Из system-design-primer интегрированы 5 паттернов (REST, OWASP, ACID, indexing, latency) — см. `BEST_PRACTICES.md`. Из Ruflo — 3 концептуальных паттерна (statusline, post-stage hook, SPARC-TDD) без установки самого инструмента.

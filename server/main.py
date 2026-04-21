@@ -1,21 +1,46 @@
+"""FastAPI entrypoint. See §5.1 + §T.8 + E-17."""
+
+from __future__ import annotations
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from config import init_dirs, MEDIA_DIR
+
+from config import APP_VERSION, CORS_ORIGINS, ENV, MEDIA_DIR, init_dirs
+from routers import auth as auth_router
+from routers import groups as groups_router
+from routers import users as users_router
 
 init_dirs()
 
-app = FastAPI(title="EpiCase API", version="1.0.0", docs_url="/api/docs", redoc_url=None)
+# E-17 — hide /docs + /openapi in prod so attackers don't enumerate the API.
+_docs_url = "/api/docs" if ENV == "dev" else None
+_openapi_url = "/api/openapi.json" if ENV == "dev" else None
 
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app = FastAPI(
+    title="EpiCase API",
+    version=APP_VERSION,
+    docs_url=_docs_url,
+    redoc_url=None,
+    openapi_url=_openapi_url,
+)
+
+# §T.8 — explicit origin list, allow_credentials requires it.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 
-# TODO: Include routers as implemented (see §6)
-# from server.routers import auth, users, groups, scenarios, nodes, attempts, analytics, media, admin
-# app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-# ...
+app.include_router(auth_router.router)
+app.include_router(users_router.router)
+app.include_router(groups_router.router)
+
 
 @app.get("/api/ping")
-def ping():
-    return {"status": "ok", "version": "1.0.0"}
+def ping() -> dict[str, str]:
+    return {"status": "ok", "version": APP_VERSION}

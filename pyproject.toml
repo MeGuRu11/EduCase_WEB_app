@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# EpiCase is Docker-deployed; this pyproject.toml exists only to centralise
+# tooling config (pytest, ruff, mypy). See ADR-015 — server/ is the workspace
+# root; plain imports (`from config import ...`) are mandatory inside server/.
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+pythonpath = ["server"]
+testpaths = ["server/tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+]
+filterwarnings = [
+    "error",
+    # SQLAlchemy + Alembic + testcontainers noise we cannot control:
+    "ignore::DeprecationWarning:passlib.*",
+    "ignore::DeprecationWarning:jose.*",
+    "ignore::DeprecationWarning:testcontainers.*",
+    "ignore::PendingDeprecationWarning",
+]
+markers = [
+    "slow: migration or container-based tests (deselect with -m 'not slow')",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["server"]
+extend-exclude = [
+    "server/migrations/versions",  # Alembic-generated files
+]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "B",        # flake8-bugbear
+    "UP",       # pyupgrade
+    "SIM",      # flake8-simplify
+    "N",        # pep8-naming
+    "S",        # flake8-bandit
+    "RUF",      # ruff-specific
+]
+ignore = [
+    "E501",   # line length (handled by formatter)
+    "B008",   # FastAPI Depends() in defaults is idiomatic
+    "S101",   # assert is fine inside tests
+    "RUF001", # Russian UI strings legitimately use Cyrillic letters
+    "RUF002",
+    "RUF003",
+    "S608",   # seed.py setval() uses hardcoded table names (false positive)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"server/tests/**/*.py" = ["S105", "S106", "S311"]
+"server/seed.py" = ["S105", "S106"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "config", "database", "dependencies", "main",
+    "models", "routers", "schemas", "services",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "server"
+explicit_package_bases = true
+ignore_missing_imports = false
+plugins = ["pydantic.mypy"]
+# Packages where we don't ship type stubs:
+[[tool.mypy.overrides]]
+module = [
+    "jose.*",
+    "passlib.*",
+    "testcontainers.*",
+    "apscheduler.*",
+    "openpyxl.*",
+    "reportlab.*",
+    "factory.*",
+]
+ignore_missing_imports = true
