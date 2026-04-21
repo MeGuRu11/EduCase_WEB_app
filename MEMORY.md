@@ -1,9 +1,9 @@
 # EpiCase — Project Memory
 
 ## Last Updated
-- Date: 2026-04-17
+- Date: 2026-04-21
 - Agent: Claude Opus 4.7
-- Stage: STAGE 0.5 — design system + addendum v1.1 integrated
+- Stage: STAGE 1 closed — Auth + Users + Groups (44 tests green)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**
@@ -42,8 +42,8 @@
       NotFoundPage + ForbiddenPage + ResourceNotFound + useResourceQuery.
       Catch-all route в App.tsx. Правила code-reviewer зафиксированы.
       Реализация — в Stage 5 (обновлены AGENT_TASKS и AGENT_PROMPTS).
-- [ ] STAGE 0 — docker compose up, /api/ping → 200
-- [ ] STAGE 1 — Auth + Users + Groups (Claude Opus)
+- [x] STAGE 0 — docker compose up, /api/ping → 200
+- [x] STAGE 1 — Auth + Users + Groups (Claude Opus) — 44 tests green, ruff clean, mypy clean, security audit passed
 - [ ] STAGE 2 — Scenarios + Graph (Claude Opus)
 - [ ] STAGE 3 — Attempts + Grading (Claude Opus)
 - [ ] STAGE 4 — Analytics + Admin (Claude Opus)
@@ -55,7 +55,12 @@
 - [ ] STAGE 10 — Integration + deploy (Both)
 
 ## Test Status
-- Backend: 0 tests / 0 passed  (Stage 1 target: ≥30)
+- Backend: 44 tests / 44 passed  (Stage 1 target: ≥30 ✓)
+  - test_auth.py: 15 (login, lockout, refresh, /me, bcrypt cost=12, password policy)
+  - test_users.py: 13 (CRUD, self-block guard, bulk CSV all-or-nothing, teacher scoping)
+  - test_groups.py: 9 (CRUD, teacher assign/remove, member rules, teacher visibility)
+  - test_migrations.py: 3 (ADR-009: apply_from_scratch / downgrade_to_base / stairstep)
+  - test_edge_cases.py: 4 (EC-AUTH-01 ≤7 chars / EC-AUTH-02 5-tries lock / EC-AUTH-03 expired refresh / EC-AUTH-04 two browsers)
 - Frontend: 0 tests / 0 passed  (Stage 5 target: ≥26)
 
 ## Decisions (DO NOT CHANGE)
@@ -85,9 +90,14 @@
 - Lead model: Opus 4.6 → Opus 4.7 (2026-04-16 release)
 
 ## Next Action
-1. Merge ADDENDUM v1.1 into `docs/PROJECT_DESIGN_EPICASE_v1.md` as v1.1, bump CHANGELOG
-2. Apply patches from `patches/` to project root
-3. `cp .env.example .env` → set `POSTGRES_PASSWORD` and `JWT_SECRET` (openssl rand -hex 32)
-4. `docker compose up -d`
-5. `curl http://localhost/api/ping` → expect `{"status":"ok","version":"1.0.0"}`
-6. → start **Stage 1**: Auth + Users + Groups (TDD, Claude Opus 4.7 owns)
+→ start **Stage 2**: Scenarios + Graph Editor (TDD, Claude Opus 4.7 owns).
+  Scope: scenarios table + scenario_nodes + scenario_edges + ScenarioService
+  (PUT /graph with full-replace + version lock), graph_engine.validate_graph
+  (effort=xhigh), access rules for teacher/student roles, role-based
+  sanitize_scenario_for_student (§T.2).
+
+Deferred Stage 1 hardening (tracked but not blockers — audit: no Critical/High):
+- Audit log table (actor_id on mutations) — needed before Stage 3 grading
+- Refresh-token rotation + jti-based logout blacklist
+- Stream bulk-CSV size check instead of post-buffer
+- Read FIRST_ADMIN_PASSWORD from env; keep must_change_password=True
