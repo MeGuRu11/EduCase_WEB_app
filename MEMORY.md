@@ -3,7 +3,7 @@
 ## Last Updated
 - Date: 2026-04-24
 - Agent: Claude Opus 4.7
-- Stage: STAGE 2 closed — Scenarios + Graph Engine (92 tests green)
+- Stage: STAGE 3 closed — Attempts + Grading (137 tests green)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**
@@ -45,7 +45,7 @@
 - [x] STAGE 0 — docker compose up, /api/ping → 200
 - [x] STAGE 1 — Auth + Users + Groups (Claude Opus) — 44 tests green, ruff clean, mypy clean, security audit passed
 - [x] STAGE 2 — Scenarios + Graph (Claude Opus) — 92 tests green (48 new), ruff clean, no correct_value leaks
-- [ ] STAGE 3 — Attempts + Grading (Claude Opus)
+- [x] STAGE 3 — Attempts + Grading (Claude Opus) — 137 tests green (45 new), ruff clean, APScheduler wired, partial-UNIQUE idx_attempts_active verified, §T.2 sanitisation in step response, §U.3 server timer
 - [ ] STAGE 4 — Analytics + Admin (Claude Opus)
 - [ ] STAGE 5 — Client: Auth + UI kit + Layout (Codex GPT 5.4)
 - [ ] STAGE 6 — Client: Scenario Editor (Codex GPT 5.4)
@@ -55,15 +55,19 @@
 - [ ] STAGE 10 — Integration + deploy (Both)
 
 ## Test Status
-- Backend: 92 tests / 92 passed  (Stage 2 target: ≥70 ✓)
+- Backend: 137 tests / 137 passed  (Stage 3 target: ≥110 ✓)
   - test_auth.py: 15 (login, lockout, refresh, /me, bcrypt cost=12, password policy)
   - test_users.py: 13 (CRUD, self-block guard, bulk CSV all-or-nothing, teacher scoping)
   - test_groups.py: 9 (CRUD, teacher assign/remove, member rules, teacher visibility)
   - test_migrations.py: 3 (ADR-009: apply_from_scratch / downgrade_to_base / stairstep)
   - test_graph_engine.py: 18 (navigation, validate_graph, cycle detection, max_score DP)
-  - test_scenarios.py: 25 (CRUD, save_graph atomicity §B.3.3, publish idempotent E-14,
-    assign, duplicate, delete, archive, student sanitisation §T.2, preview §UI.1, PATCH node)
-  - test_edge_cases.py: 9 (4× EC-AUTH + 5× EC-SCENARIO-01..05)
+  - test_scenarios.py: 25 (CRUD, save_graph atomicity, publish idempotent, assign,
+    duplicate, delete, archive, §T.2 sanitisation, preview §UI.1, PATCH node)
+  - test_grader.py: 16 (decision binary/partial/empty-correct E-02, form fields,
+    regex, text_input substring/synonyms/no-double-count, view_data)
+  - test_attempts.py: 22 (start/step/finish/abandon/resume/time-remaining/auto_finish/
+    §T.2 leak check/concurrent start/§B.3.4 partial-UNIQUE/403 for unassigned)
+  - test_edge_cases.py: 16 (4× EC-AUTH + 5× EC-SCENARIO + 7× EC-ATTEMPT-01..07)
 - Frontend: 0 tests / 0 passed  (Stage 5 target: ≥26)
 
 ## Decisions (DO NOT CHANGE)
@@ -93,12 +97,10 @@
 - Lead model: Opus 4.6 → Opus 4.7 (2026-04-16 release)
 
 ## Next Action
-→ start **Stage 3**: Attempts + Grading (TDD, Claude Opus 4.7 owns).
-  Scope: migration 003 (attempts / answers / media_files linking), AttemptService
-  (start/answer/finish with server-authoritative timer), grader_service.py
-  (effort=xhigh, partial credit for decision per §B.3, form field scoring,
-  text_input keyword matching §B.6), role-based rate limiting on POST /answers,
-  anti-cheat (server-side nonce, §T.2 sanitisation at every step).
+→ start **Stage 4**: Analytics + Admin (TDD, Claude Opus 4.7 owns).
+  Scope: analytics_service (student dashboard, teacher scenario-stats,
+  path-heatmap, XLSX/PDF exports §E), admin panel (system_settings,
+  system_logs, daily_backup via backup_service §T.5), retention jobs.
 
 Deferred Stage 1 hardening (tracked but not blockers — audit: no Critical/High):
 - Audit log table (actor_id on mutations) — needed before Stage 3 grading

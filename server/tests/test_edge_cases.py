@@ -11,6 +11,14 @@ Covered here:
     EC-SCENARIO-03  Редактирование опубликованного → unpublish → edit → publish
     EC-SCENARIO-04  Удаление опубликованного → 409 "Архивируйте"
     EC-SCENARIO-05  Дублирование → новый сценарий, status=draft, новый author
+
+    EC-ATTEMPT-01  Старт при существующей active → 201/409 (F5-resume или conflict)
+    EC-ATTEMPT-02  Превышен max_attempts → 422
+    EC-ATTEMPT-03  Переход к несуществующему узлу → 400
+    EC-ATTEMPT-04  Время вышло → 410 Gone на next step, auto_finish метит completed
+    EC-ATTEMPT-05  F5-resume возвращает ту же попытку (resumed=True)
+    EC-ATTEMPT-06  Concurrent finish от одного юзера — идемпотентен, не падает
+    EC-ATTEMPT-07  text_input пустой ответ → score=0, не 500
 """
 
 from __future__ import annotations
@@ -303,3 +311,244 @@ def test_ec_scenario_05_duplicate_creates_draft_with_new_author(
     assert clone["author_id"] == admin_user.id  # new author, not the original teacher
     assert clone["author_id"] != teacher_user.id
     assert clone["title"].startswith("Оригинал")
+
+
+# ─── EC-ATTEMPT helpers ──────────────────────────────────────────────────────
+
+
+def _ec_attempt_graph() -> dict:
+    return {
+        "nodes": [
+            {"id": "n_start", "type": "start", "position": {"x": 0, "y": 0},
+             "data": {}, "title": "Старт"},
+            {"id": "n_dec", "type": "decision", "position": {"x": 1, "y": 0},
+             "data": {
+                 "question": "?",
+                 "options": [
+                     {"id": "o_ok", "text": "OK"},
+                     {"id": "o_bad", "text": "Bad"},
+                 ],
+                 "max_score": 10.0,
+             }, "title": "Решение"},
+            {"id": "n_text", "type": "text_input", "position": {"x": 2, "y": 0},
+             "data": {"prompt": "?",
+                      "keywords": [{"word": "гепатит", "synonyms": [],
+                                    "score": 5.0}],
+                      "max_score": 5.0},
+             "title": "Ввод"},
+            {"id": "n_final", "type": "final", "position": {"x": 3, "y": 0},
+             "data": {}, "title": "Финал"},
+        ],
+        "edges": [
+            {"id": "e_s_d", "source": "n_start", "target": "n_dec",
+             "label": None, "data": {"is_correct": True, "score_delta": 0}},
+            {"id": "e_ok", "source": "n_dec", "target": "n_text",
+             "label": "OK", "data": {"is_correct": True, "score_delta": 0,
+                                     "option_id": "o_ok"}},
+            {"id": "e_bad", "source": "n_dec", "target": "n_final",
+             "label": "Bad", "data": {"is_correct": False, "score_delta": 0,
+                                      "option_id": "o_bad"}},
+            {"id": "e_t_f", "source": "n_text", "target": "n_final",
+             "label": None, "data": {"is_correct": True, "score_delta": 0}},
+        ],
+    }
+
+
+def _ec_setup_attempt_world(
+    client, teacher_token, student_user, db_session,
+    *, title="EC Scenario", time_limit_min=None, max_attempts=None,
+):
+    from models.user import Group
+
+    group = Group(name=f"EC {title}")
+    db_session.add(group)
+    db_session.flush()
+    student_user.group_id = group.id
+    db_session.flush()
+
+    body = {"title": title, "description": "edge-case", "passing_score": 50}
+    if time_limit_min is not None:
+        body["time_limit_min"] = time_limit_min
+    if max_attempts is not None:
+        body["max_attempts"] = max_attempts
+
+    sid = client.post("/api/scenarios/", json=body,
+                      headers=_auth(teacher_token)).json()["id"]
+    client.put(f"/api/scenarios/{sid}/graph", json=_ec_attempt_graph(),
+               headers=_auth(teacher_token))
+    client.post(f"/api/scenarios/{sid}/publish",
+                headers=_auth(teacher_token))
+    client.post(f"/api/scenarios/{sid}/assign",
+                json={"group_id": group.id},
+                headers=_auth(teacher_token))
+    return sid, group.id
+
+
+# ─── EC-ATTEMPT-01 ───────────────────────────────────────────────────────────
+
+
+def test_ec_attempt_01_second_start_is_idempotent_resume_or_409(
+    client, teacher_token, student_token, student_user, db_session,
+) -> None:
+    sid, _ = _ec_setup_attempt_world(
+        client, teacher_token, student_user, db_session, title="EC-01",
+    )
+    first = client.post("/api/attempts/start", json={"scenario_id": sid},
+                        headers=_auth(student_token))
+    assert first.status_code == 201
+    second = client.post("/api/attempts/start", json={"scenario_id": sid},
+                         headers=_auth(student_token))
+    assert second.status_code in (200, 201, 409)
+    if second.status_code in (200, 201):
+        assert second.json()["attempt_id"] == first.json()["attempt_id"]
+
+
+# ─── EC-ATTEMPT-02 ───────────────────────────────────────────────────────────
+
+
+def test_ec_attempt_02_max_attempts_exceeded_returns_422(
+    client, teacher_token, student_token, student_user, db_session,
+) -> None:
+    sid, _ = _ec_setup_attempt_world(
+        client, teacher_token, student_user, db_session,
+        title="EC-02", max_attempts=1,
+    )
+    aid = client.post("/api/attempts/start", json={"scenario_id": sid},
+                      headers=_auth(student_token)).json()["attempt_id"]
+    client.post(f"/api/attempts/{aid}/finish",
+                headers=_auth(student_token))
+    again = client.post("/api/attempts/start", json={"scenario_id": sid},
+                        headers=_auth(student_token))
+    assert again.status_code == 422
+    assert "лимит" in again.text.lower() or "max_attempts" in again.text.lower()
+
+
+# ─── EC-ATTEMPT-03 ───────────────────────────────────────────────────────────
+
+
+def test_ec_attempt_03_transition_to_unknown_node_returns_400(
+    client, teacher_token, student_token, student_user, db_session,
+) -> None:
+    sid, _ = _ec_setup_attempt_world(
+        client, teacher_token, student_user, db_session, title="EC-03",
+    )
+    aid = client.post("/api/attempts/start", json={"scenario_id": sid},
+                      headers=_auth(student_token)).json()["attempt_id"]
+    r = client.post(
+        f"/api/attempts/{aid}/step",
+        json={"node_id": "n_text",  # not the current node
+              "action": "submit_text", "answer_data": {"text": "x"},
+              "time_spent_sec": 1},
+        headers=_auth(student_token),
+    )
+    assert r.status_code == 400
+    assert "переход" in r.text.lower() or "недопустим" in r.text.lower()
+
+
+# ─── EC-ATTEMPT-04 ───────────────────────────────────────────────────────────
+
+
+def test_ec_attempt_04_time_expired_step_returns_410_and_completes(
+    client, teacher_token, student_token, student_user, db_session,
+) -> None:
+    from datetime import timedelta as _td
+
+    sid, _ = _ec_setup_attempt_world(
+        client, teacher_token, student_user, db_session,
+        title="EC-04", time_limit_min=10,
+    )
+    aid = client.post("/api/attempts/start", json={"scenario_id": sid},
+                      headers=_auth(student_token)).json()["attempt_id"]
+
+    from models.attempt import Attempt
+    attempt = db_session.get(Attempt, aid)
+    attempt.expires_at = datetime.now(tz=UTC) - _td(minutes=1)
+    db_session.flush()
+
+    r = client.post(
+        f"/api/attempts/{aid}/step",
+        json={"node_id": "n_start", "action": "view_data",
+              "answer_data": {}, "time_spent_sec": 1},
+        headers=_auth(student_token),
+    )
+    assert r.status_code == 410
+    db_session.expire_all()
+    finished = db_session.get(Attempt, aid)
+    assert finished.status == "completed"
+
+
+# ─── EC-ATTEMPT-05 ───────────────────────────────────────────────────────────
+
+
+def test_ec_attempt_05_f5_resume_returns_same_attempt(
+    client, teacher_token, student_token, student_user, db_session,
+) -> None:
+    sid, _ = _ec_setup_attempt_world(
+        client, teacher_token, student_user, db_session, title="EC-05",
+    )
+    first = client.post("/api/attempts/start", json={"scenario_id": sid},
+                        headers=_auth(student_token)).json()
+    # Walk one step to set current_node != start.
+    client.post(f"/api/attempts/{first['attempt_id']}/step",
+                json={"node_id": "n_start", "action": "view_data",
+                      "answer_data": {}, "time_spent_sec": 1},
+                headers=_auth(student_token))
+    resumed = client.post("/api/attempts/start", json={"scenario_id": sid},
+                          headers=_auth(student_token))
+    assert resumed.status_code in (200, 201)
+    body = resumed.json()
+    assert body["attempt_id"] == first["attempt_id"]
+    assert body["resumed"] is True
+    assert body["current_node"]["id"] == "n_dec"
+
+
+# ─── EC-ATTEMPT-06 ───────────────────────────────────────────────────────────
+
+
+def test_ec_attempt_06_double_finish_is_idempotent(
+    client, teacher_token, student_token, student_user, db_session,
+) -> None:
+    sid, _ = _ec_setup_attempt_world(
+        client, teacher_token, student_user, db_session, title="EC-06",
+    )
+    aid = client.post("/api/attempts/start", json={"scenario_id": sid},
+                      headers=_auth(student_token)).json()["attempt_id"]
+    r1 = client.post(f"/api/attempts/{aid}/finish",
+                     headers=_auth(student_token))
+    r2 = client.post(f"/api/attempts/{aid}/finish",
+                     headers=_auth(student_token))
+    assert r1.status_code == 200
+    assert r2.status_code == 200
+    assert r1.json()["status"] == "completed"
+    assert r2.json()["status"] == "completed"
+
+
+# ─── EC-ATTEMPT-07 ───────────────────────────────────────────────────────────
+
+
+def test_ec_attempt_07_text_input_empty_answer_scores_zero_not_crash(
+    client, teacher_token, student_token, student_user, db_session,
+) -> None:
+    sid, _ = _ec_setup_attempt_world(
+        client, teacher_token, student_user, db_session, title="EC-07",
+    )
+    aid = client.post("/api/attempts/start", json={"scenario_id": sid},
+                      headers=_auth(student_token)).json()["attempt_id"]
+    client.post(f"/api/attempts/{aid}/step",
+                json={"node_id": "n_start", "action": "view_data",
+                      "answer_data": {}, "time_spent_sec": 1},
+                headers=_auth(student_token))
+    client.post(f"/api/attempts/{aid}/step",
+                json={"node_id": "n_dec", "action": "choose_option",
+                      "answer_data": {"selected_option_id": "o_ok"},
+                      "time_spent_sec": 1},
+                headers=_auth(student_token))
+    r = client.post(
+        f"/api/attempts/{aid}/step",
+        json={"node_id": "n_text", "action": "submit_text",
+              "answer_data": {"text": ""}, "time_spent_sec": 1},
+        headers=_auth(student_token),
+    )
+    assert r.status_code == 200
+    assert r.json()["step_result"]["score"] == 0.0
+    assert r.json()["step_result"]["is_correct"] is False
