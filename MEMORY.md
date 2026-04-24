@@ -1,9 +1,9 @@
 # EpiCase — Project Memory
 
 ## Last Updated
-- Date: 2026-04-21
+- Date: 2026-04-24
 - Agent: Claude Opus 4.7
-- Stage: STAGE 1 closed — Auth + Users + Groups (44 tests green)
+- Stage: STAGE 2 closed — Scenarios + Graph Engine (92 tests green)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**
@@ -44,7 +44,7 @@
       Реализация — в Stage 5 (обновлены AGENT_TASKS и AGENT_PROMPTS).
 - [x] STAGE 0 — docker compose up, /api/ping → 200
 - [x] STAGE 1 — Auth + Users + Groups (Claude Opus) — 44 tests green, ruff clean, mypy clean, security audit passed
-- [ ] STAGE 2 — Scenarios + Graph (Claude Opus)
+- [x] STAGE 2 — Scenarios + Graph (Claude Opus) — 92 tests green (48 new), ruff clean, no correct_value leaks
 - [ ] STAGE 3 — Attempts + Grading (Claude Opus)
 - [ ] STAGE 4 — Analytics + Admin (Claude Opus)
 - [ ] STAGE 5 — Client: Auth + UI kit + Layout (Codex GPT 5.4)
@@ -55,12 +55,15 @@
 - [ ] STAGE 10 — Integration + deploy (Both)
 
 ## Test Status
-- Backend: 44 tests / 44 passed  (Stage 1 target: ≥30 ✓)
+- Backend: 92 tests / 92 passed  (Stage 2 target: ≥70 ✓)
   - test_auth.py: 15 (login, lockout, refresh, /me, bcrypt cost=12, password policy)
   - test_users.py: 13 (CRUD, self-block guard, bulk CSV all-or-nothing, teacher scoping)
   - test_groups.py: 9 (CRUD, teacher assign/remove, member rules, teacher visibility)
   - test_migrations.py: 3 (ADR-009: apply_from_scratch / downgrade_to_base / stairstep)
-  - test_edge_cases.py: 4 (EC-AUTH-01 ≤7 chars / EC-AUTH-02 5-tries lock / EC-AUTH-03 expired refresh / EC-AUTH-04 two browsers)
+  - test_graph_engine.py: 18 (navigation, validate_graph, cycle detection, max_score DP)
+  - test_scenarios.py: 25 (CRUD, save_graph atomicity §B.3.3, publish idempotent E-14,
+    assign, duplicate, delete, archive, student sanitisation §T.2, preview §UI.1, PATCH node)
+  - test_edge_cases.py: 9 (4× EC-AUTH + 5× EC-SCENARIO-01..05)
 - Frontend: 0 tests / 0 passed  (Stage 5 target: ≥26)
 
 ## Decisions (DO NOT CHANGE)
@@ -90,11 +93,12 @@
 - Lead model: Opus 4.6 → Opus 4.7 (2026-04-16 release)
 
 ## Next Action
-→ start **Stage 2**: Scenarios + Graph Editor (TDD, Claude Opus 4.7 owns).
-  Scope: scenarios table + scenario_nodes + scenario_edges + ScenarioService
-  (PUT /graph with full-replace + version lock), graph_engine.validate_graph
-  (effort=xhigh), access rules for teacher/student roles, role-based
-  sanitize_scenario_for_student (§T.2).
+→ start **Stage 3**: Attempts + Grading (TDD, Claude Opus 4.7 owns).
+  Scope: migration 003 (attempts / answers / media_files linking), AttemptService
+  (start/answer/finish with server-authoritative timer), grader_service.py
+  (effort=xhigh, partial credit for decision per §B.3, form field scoring,
+  text_input keyword matching §B.6), role-based rate limiting on POST /answers,
+  anti-cheat (server-side nonce, §T.2 sanitisation at every step).
 
 Deferred Stage 1 hardening (tracked but not blockers — audit: no Critical/High):
 - Audit log table (actor_id on mutations) — needed before Stage 3 grading

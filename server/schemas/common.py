@@ -16,7 +16,7 @@ class PaginationParams(BaseModel):
     sort: str | None = None
 
 
-class PaginatedResponse(BaseModel, Generic[T]):
+class PaginatedResponse(BaseModel, Generic[T]):  # noqa: UP046 — Pydantic v2 requires explicit Generic subclass.
     items: list[T]
     total: int
     page: int
