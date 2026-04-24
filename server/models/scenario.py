@@ -142,6 +142,7 @@ class ScenarioEdge(Base):
     score_delta: Mapped[float] = mapped_column(
         Float, nullable=False, default=0.0, server_default="0"
     )
+    option_id: Mapped[str | None] = mapped_column(String(50))
     condition: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
     scenario: Mapped[Scenario] = relationship(back_populates="edges")

@@ -110,6 +110,11 @@ def db_session(db_engine: Engine) -> Generator[Session, None, None]:
 @pytest.fixture()
 def client(db_session: Session) -> Generator[TestClient, None, None]:
     """FastAPI TestClient backed by the same session as ``db_session``."""
+    # APScheduler would spawn threads and commit against the shared Postgres
+    # outside of the per-test transaction, leaking rows across tests (§U.3
+    # scheduler exists only for the running server, not for unit tests).
+    os.environ["DISABLE_SCHEDULER"] = "1"
+
     from database import get_db
     from main import app
 

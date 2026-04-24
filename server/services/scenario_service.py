@@ -84,6 +84,7 @@ def _to_full_out(scenario: Scenario, db: Session) -> ScenarioFullOut:
             data={
                 "is_correct": e.is_correct,
                 "score_delta": e.score_delta,
+                **({"option_id": e.option_id} if e.option_id is not None else {}),
                 **({} if e.condition is None else {"condition": None}),
             },
         )
@@ -384,6 +385,7 @@ class ScenarioService:
                         label=edge.label,
                         is_correct=bool(edge_data.get("is_correct", True)),
                         score_delta=float(edge_data.get("score_delta", 0.0)),
+                        option_id=edge_data.get("option_id"),
                         condition=None,  # §B.5 — reserved for V2
                     )
                 )
