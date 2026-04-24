@@ -9,6 +9,9 @@ from fastapi.staticfiles import StaticFiles
 from config import APP_VERSION, CORS_ORIGINS, ENV, MEDIA_DIR, init_dirs
 from routers import auth as auth_router
 from routers import groups as groups_router
+from routers import media as media_router
+from routers import nodes as nodes_router
+from routers import scenarios as scenarios_router
 from routers import users as users_router
 
 init_dirs()
@@ -39,6 +42,9 @@ app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 app.include_router(auth_router.router)
 app.include_router(users_router.router)
 app.include_router(groups_router.router)
+app.include_router(scenarios_router.router)
+app.include_router(nodes_router.router)
+app.include_router(media_router.router)
 
 
 @app.get("/api/ping")
