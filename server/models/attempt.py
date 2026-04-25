@@ -12,7 +12,7 @@ The server-authoritative timer (§U.3) lives in ``Attempt.expires_at``; the
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import (
     Boolean,
@@ -29,6 +29,9 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
+
+if TYPE_CHECKING:
+    from models.scenario import Scenario
 
 
 class Attempt(Base):
@@ -76,6 +79,8 @@ class Attempt(Base):
         passive_deletes=True,
         order_by="AttemptStep.id",
     )
+    # Used by ``_ensure_attempt_owner`` to authorise teacher access.
+    scenario: Mapped[Scenario] = relationship("Scenario", lazy="joined")
 
 
 class AttemptStep(Base):

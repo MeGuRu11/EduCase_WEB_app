@@ -549,3 +549,64 @@ def test_attempts_endpoints_require_auth(client, endpoint):
     payload = {"json": {"scenario_id": 1}} if endpoint == "/api/attempts/start" else {}
     r = method(endpoint, **payload)
     assert r.status_code in (401, 403)
+
+
+# ════════════════════ regression tests (RETRO_AUDIT) ════════════════════
+
+
+def test_teacher_can_get_own_scenario_attempt_no_attribute_error(
+    client, teacher_token, teacher_user, student_token, student_user, db_session,
+):
+    """RETRO_AUDIT: ``_ensure_attempt_owner`` referenced ``attempt.scenario``
+    which didn't exist on the model — teacher access raised AttributeError.
+    Now ``Attempt`` has a ``scenario`` relationship and teacher (author of
+    the scenario) gets 200."""
+    sid, _ = _create_publish_assign(client, teacher_token, student_user, db_session)
+    aid = client.post("/api/attempts/start", json={"scenario_id": sid},
+                      headers=auth_header(student_token)).json()["attempt_id"]
+    client.post(f"/api/attempts/{aid}/finish",
+                headers=auth_header(student_token))
+
+    r = client.get(f"/api/attempts/{aid}", headers=auth_header(teacher_token))
+    assert r.status_code == 200, r.text
+    assert r.json()["id"] == aid
+
+
+def test_duplicate_scenario_preserves_decision_routing(
+    client, teacher_token, student_token, student_user, db_session,
+):
+    """RETRO_AUDIT: ``ScenarioService.duplicate`` dropped ``option_id`` on
+    cloned edges, so a decision step on the duplicate could not match the
+    selected option to its outgoing edge → grader returned 0."""
+    sid, _ = _create_publish_assign(client, teacher_token, student_user, db_session)
+
+    # Unpublish original so we can read its draft, then duplicate.
+    client.post(f"/api/scenarios/{sid}/unpublish",
+                headers=auth_header(teacher_token))
+    dup = client.post(f"/api/scenarios/{sid}/duplicate",
+                      headers=auth_header(teacher_token)).json()
+    new_sid = dup["id"]
+
+    # Assign clone to student's group (already linked from helper).
+    client.post(f"/api/scenarios/{new_sid}/publish",
+                headers=auth_header(teacher_token))
+    grp_id = student_user.group_id
+    assert grp_id is not None
+    client.post(f"/api/scenarios/{new_sid}/assign",
+                json={"group_id": grp_id},
+                headers=auth_header(teacher_token))
+
+    aid = client.post("/api/attempts/start", json={"scenario_id": new_sid},
+                      headers=auth_header(student_token)).json()["attempt_id"]
+    client.post(f"/api/attempts/{aid}/step",
+                json={"node_id": "n_start", "action": "view_data",
+                      "answer_data": {}, "time_spent_sec": 1},
+                headers=auth_header(student_token))
+    r = client.post(f"/api/attempts/{aid}/step",
+                    json={"node_id": "n_dec", "action": "choose_option",
+                          "answer_data": {"selected_option_id": "o_ok"},
+                          "time_spent_sec": 1},
+                    headers=auth_header(student_token))
+    assert r.status_code == 200, r.text
+    assert r.json()["step_result"]["score"] == 10.0  # Decision routing intact.
+    assert r.json()["step_result"]["is_correct"] is True

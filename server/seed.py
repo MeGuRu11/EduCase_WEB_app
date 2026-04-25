@@ -13,6 +13,7 @@ Invoked from main.py after Alembic upgrade when ENV var FIRST_RUN=true.
 from __future__ import annotations
 
 import logging
+import os
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -32,9 +33,13 @@ ROLES: list[dict] = [
 ]
 
 
+# Password is read from FIRST_ADMIN_PASSWORD on first run; the dev fallback is
+# kept so local Docker boots without extra env wiring. The seed always sets
+# must_change_password=True so the operator is forced to rotate it.
+_FIRST_ADMIN_DEV_DEFAULT = "Admin1234!"  # dev only, must rotate on first login
 FIRST_ADMIN: dict = {
     "username": "admin",
-    "password": "Admin1234!",
+    "password": os.getenv("FIRST_ADMIN_PASSWORD", _FIRST_ADMIN_DEV_DEFAULT),
     "full_name": "Администратор системы",
     "role_id": 3,
     "must_change_password": True,
@@ -185,6 +190,11 @@ def seed_form_templates(db: Session) -> None:
 
 
 def seed_first_admin(db: Session) -> None:
+    if FIRST_ADMIN["password"] == _FIRST_ADMIN_DEV_DEFAULT:
+        log.warning(
+            "FIRST_ADMIN_PASSWORD env var not set — using dev fallback. "
+            "Set FIRST_ADMIN_PASSWORD before first deploy or rotate immediately."
+        )
     admin = User(
         username=FIRST_ADMIN["username"],
         password_hash=AuthService.hash_password(FIRST_ADMIN["password"]),

@@ -607,6 +607,7 @@ class ScenarioService:
                     label=edge.label,
                     is_correct=edge.is_correct,
                     score_delta=edge.score_delta,
+                    option_id=edge.option_id,
                     condition=None,
                 )
             )
