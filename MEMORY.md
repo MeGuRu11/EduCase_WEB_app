@@ -1,9 +1,9 @@
 # EpiCase — Project Memory
 
 ## Last Updated
-- Date: 2026-04-24
+- Date: 2026-04-25
 - Agent: Claude Opus 4.7
-- Stage: STAGE 3 closed — Attempts + Grading (137 tests green)
+- Stage: STAGE 3 closed + retro-audit (139 tests green; 3 BROKEN fixed)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**
@@ -46,6 +46,10 @@
 - [x] STAGE 1 — Auth + Users + Groups (Claude Opus) — 44 tests green, ruff clean, mypy clean, security audit passed
 - [x] STAGE 2 — Scenarios + Graph (Claude Opus) — 92 tests green (48 new), ruff clean, no correct_value leaks
 - [x] STAGE 3 — Attempts + Grading (Claude Opus) — 137 tests green (45 new), ruff clean, APScheduler wired, partial-UNIQUE idx_attempts_active verified, §T.2 sanitisation in step response, §U.3 server timer
+- [x] **Retro-audit Stage 0–3** (2026-04-25) — `docs/RETRO_AUDIT_STAGE0-3.md`. Fixed 3 🔴 BROKEN
+      (Attempt.scenario relationship missing → AttributeError on teacher path;
+      ScenarioService.duplicate dropping edge.option_id; FIRST_ADMIN_PASSWORD hardcoded).
+      +2 regression tests → 139/139 green, ruff clean.
 - [ ] STAGE 4 — Analytics + Admin (Claude Opus)
 - [ ] STAGE 5 — Client: Auth + UI kit + Layout (Codex GPT 5.4)
 - [ ] STAGE 6 — Client: Scenario Editor (Codex GPT 5.4)
@@ -55,7 +59,7 @@
 - [ ] STAGE 10 — Integration + deploy (Both)
 
 ## Test Status
-- Backend: 137 tests / 137 passed  (Stage 3 target: ≥110 ✓)
+- Backend: 139 tests / 139 passed  (Stage 3 target: ≥110 ✓; +2 retro-audit regressions)
   - test_auth.py: 15 (login, lockout, refresh, /me, bcrypt cost=12, password policy)
   - test_users.py: 13 (CRUD, self-block guard, bulk CSV all-or-nothing, teacher scoping)
   - test_groups.py: 9 (CRUD, teacher assign/remove, member rules, teacher visibility)
@@ -65,8 +69,9 @@
     duplicate, delete, archive, §T.2 sanitisation, preview §UI.1, PATCH node)
   - test_grader.py: 16 (decision binary/partial/empty-correct E-02, form fields,
     regex, text_input substring/synonyms/no-double-count, view_data)
-  - test_attempts.py: 22 (start/step/finish/abandon/resume/time-remaining/auto_finish/
-    §T.2 leak check/concurrent start/§B.3.4 partial-UNIQUE/403 for unassigned)
+  - test_attempts.py: 24 (start/step/finish/abandon/resume/time-remaining/auto_finish/
+    §T.2 leak check/concurrent start/§B.3.4 partial-UNIQUE/403 for unassigned/
+    +2 retro-audit regressions: teacher-attempt-access, duplicate-preserves-option_id)
   - test_edge_cases.py: 16 (4× EC-AUTH + 5× EC-SCENARIO + 7× EC-ATTEMPT-01..07)
 - Frontend: 0 tests / 0 passed  (Stage 5 target: ≥26)
 
@@ -102,8 +107,13 @@
   path-heatmap, XLSX/PDF exports §E), admin panel (system_settings,
   system_logs, daily_backup via backup_service §T.5), retention jobs.
 
-Deferred Stage 1 hardening (tracked but not blockers — audit: no Critical/High):
-- Audit log table (actor_id on mutations) — needed before Stage 3 grading
-- Refresh-token rotation + jti-based logout blacklist
-- Stream bulk-CSV size check instead of post-buffer
-- Read FIRST_ADMIN_PASSWORD from env; keep must_change_password=True
+Deferred Stage 1 hardening (status after retro-audit 2026-04-25):
+- ⏳ Audit log table (actor_id on mutations) — needed before Stage 4 analytics
+- ⏳ Refresh-token rotation + jti-based logout blacklist — logout still no-op
+- ⏳ Stream bulk-CSV size check instead of post-buffer — mitigated via nginx 5 МБ cap
+- ✅ FIRST_ADMIN_PASSWORD now read from env with dev-fallback warning (seed.py)
+
+Other follow-ups from retro-audit (priority before Stage 4):
+- 🟡 N+1 in scenario_service._to_list_out + attempt_service.list_for_student
+- 🟠 Bump APP_VERSION → 1.1.0 (ADDENDUM v1.1)
+- ℹ️ Role-name constants (Role.ADMIN/TEACHER/STUDENT) instead of stringly-typed checks
