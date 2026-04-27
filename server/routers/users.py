@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
 from dependencies import get_current_user, require_role
-from models.user import User
+from models.user import RoleName, User
 from schemas.common import PaginatedResponse
 from schemas.user import (
     ChangePasswordRequest,
@@ -51,24 +51,29 @@ def list_users(
     "/",
     response_model=UserOut,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[Depends(require_role(RoleName.ADMIN))],
 )
-def create_user(payload: UserCreate, db: Session = Depends(get_db)) -> UserOut:
-    user = UserService.create(db, payload)
+def create_user(
+    payload: UserCreate,
+    current: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> UserOut:
+    user = UserService.create(db, payload, actor=current)
     return UserService.to_out(user)
 
 
 @router.post(
     "/bulk-csv",
     response_model=UserBulkResult,
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[Depends(require_role(RoleName.ADMIN))],
 )
 async def bulk_csv(
     file: UploadFile = FastAPIFile(...),
+    current: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> UserBulkResult:
     blob = await file.read()
-    result = UserService.bulk_csv(db, blob=blob)
+    result = UserService.bulk_csv(db, blob=blob, actor=current)
     if result.errors:
         # §T.6 — all-or-nothing; surface errors via 422, not 200.
         raise HTTPException(
@@ -102,7 +107,7 @@ def update_user(
 @router.put(
     "/{user_id}/status",
     response_model=UserOut,
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[Depends(require_role(RoleName.ADMIN))],
 )
 def set_user_status(
     user_id: int,
@@ -128,7 +133,7 @@ def set_user_status(
 
 @router.post(
     "/{user_id}/reset-password",
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[Depends(require_role(RoleName.ADMIN))],
 )
 def reset_password(
     user_id: int,

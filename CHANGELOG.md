@@ -1,5 +1,52 @@
 # EpiCase — CHANGELOG
 
+## 1.1.0 — 2026-04-25 — Backend pre-Stage-4 hardening
+
+### Added
+
+- **Audit log** (`audit_logs` table, migration 005). Records significant
+  mutations: `user.create / update / block / unblock / bulk_csv / logout`,
+  `group.create / update / add_member / remove_member /
+  assign_teacher / remove_teacher`, `scenario.create / save_graph /
+  publish / unpublish / archive / duplicate / delete / assign`,
+  `attempt.finish / abandon / auto_finish` (system attribution).
+  `services.audit_service.log_action` writes inside the caller's
+  transaction and never commits on its own.
+- **JTI blacklist** (`token_blacklist` table, migration 006). Every
+  access token now carries a `jti` (UUID4); `POST /api/auth/logout` adds
+  it to the blacklist; `dependencies.get_current_user` rejects revoked
+  tokens with 401 "Token revoked". Hourly APScheduler job
+  `cleanup_expired_blacklist` purges entries older than 1 day past
+  `expires_at`.
+- **`models.user.RoleName`** centralised role-string constants
+  (`ADMIN / TEACHER / STUDENT`) — replaces stringly-typed checks across
+  `services/*` and `routers/*`.
+
+### Changed
+
+- `services/scenario_service.list_for` switched to `selectinload` for
+  `author` + `assignments` and a single grouped count of nodes — fixed
+  N+1 reported in `docs/RETRO_AUDIT_STAGE0-3.md` priority 3.
+- `services/attempt_service.list_for_student` switched to
+  `selectinload(Attempt.scenario)` — same fix.
+- `Scenario.author` relationship added to support the eager-load above.
+- `APP_VERSION` bumped from `1.0.0` to `1.1.0` to align with
+  ADDENDUM v1.1.
+
+### Deferred (still tracked)
+
+- Refresh-token rotation. Current refresh flow does not rotate the
+  refresh token on `POST /api/auth/refresh`. Owner: Stage 10.
+
+### Tests
+
+- `+test_audit_log.py` (6 tests).
+- `+test_health.py` (1 test).
+- `+test_auth.py` (4 tests for jti blacklist + cleanup).
+- `+test_scenarios.py` (1 N+1 regression).
+- `+test_attempts.py` (1 N+1 regression).
+- Total backend suite: **152 / 152 green**.
+
 ## v1.1.5 — 2026-04-18
 
 ### Added

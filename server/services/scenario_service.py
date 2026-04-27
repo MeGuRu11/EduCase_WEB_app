@@ -15,7 +15,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from models.scenario import (
     Scenario,
@@ -23,7 +23,7 @@ from models.scenario import (
     ScenarioGroup,
     ScenarioNode,
 )
-from models.user import Group, TeacherGroup, User
+from models.user import Group, RoleName, TeacherGroup, User
 from schemas.scenario import (
     EdgeOut,
     GraphIn,
@@ -37,6 +37,7 @@ from schemas.scenario import (
     ScenarioUpdate,
     sanitize_scenario_for_student,
 )
+from services.audit_service import log_action
 from services.graph_engine import GraphEngine
 
 # ────────────── preview sessions (in-memory, §UI.1) ──────────────
@@ -116,15 +117,43 @@ def _to_full_out(scenario: Scenario, db: Session) -> ScenarioFullOut:
     )
 
 
-def _to_list_out(scenario: Scenario, db: Session) -> ScenarioListOut:
-    author = db.get(User, scenario.author_id) if scenario.author_id else None
-    node_count = (
-        db.query(ScenarioNode).filter(ScenarioNode.scenario_id == scenario.id).count()
-    )
-    assigned_groups = [
-        sg.group_id
-        for sg in db.query(ScenarioGroup).filter(ScenarioGroup.scenario_id == scenario.id)
-    ]
+def _to_list_out(
+    scenario: Scenario,
+    db: Session,
+    *,
+    node_count: int | None = None,
+) -> ScenarioListOut:
+    """Serialise to ``ScenarioListOut``.
+
+    Callers in list paths pre-load ``scenario.author`` and
+    ``scenario.assignments`` via ``selectinload`` and supply ``node_count``
+    aggregated in a single query — this avoids the N+1 that the retro-audit
+    flagged. Single-scenario callers can omit ``node_count`` and we fall
+    back to a query.
+    """
+
+    if "author" in scenario.__dict__:
+        author = scenario.author
+    else:
+        author = db.get(User, scenario.author_id) if scenario.author_id else None
+
+    if node_count is None:
+        node_count = (
+            db.query(ScenarioNode)
+            .filter(ScenarioNode.scenario_id == scenario.id)
+            .count()
+        )
+
+    if "assignments" in scenario.__dict__:
+        assigned_groups = [sg.group_id for sg in scenario.assignments]
+    else:
+        assigned_groups = [
+            sg.group_id
+            for sg in db.query(ScenarioGroup).filter(
+                ScenarioGroup.scenario_id == scenario.id
+            )
+        ]
+
     return ScenarioListOut(
         id=scenario.id,
         title=scenario.title,
@@ -140,7 +169,7 @@ def _to_list_out(scenario: Scenario, db: Session) -> ScenarioListOut:
         max_attempts=scenario.max_attempts,
         passing_score=scenario.passing_score,
         version=scenario.version,
-        node_count=node_count,
+        node_count=int(node_count),
         assigned_groups=assigned_groups,
         my_attempts_count=0,
         created_at=scenario.created_at,
@@ -162,9 +191,9 @@ def _load_scenario_or_404(db: Session, scenario_id: int) -> Scenario:
 
 def _ensure_author_or_admin(scenario: Scenario, actor: User) -> None:
     role = actor.role.name
-    if role == "admin":
+    if role == RoleName.ADMIN:
         return
-    if role == "teacher" and scenario.author_id == actor.id:
+    if role == RoleName.TEACHER and scenario.author_id == actor.id:
         return
     raise HTTPException(
         status.HTTP_403_FORBIDDEN,
@@ -215,6 +244,14 @@ class ScenarioService:
         db.add(scenario)
         db.flush()
         db.refresh(scenario)
+        log_action(
+            db,
+            actor_id=author.id,
+            action="scenario.create",
+            entity_type="scenario",
+            entity_id=scenario.id,
+            meta={"title": scenario.title},
+        )
         return _to_full_out(scenario, db)
 
     @classmethod
@@ -245,8 +282,18 @@ class ScenarioService:
                 status.HTTP_409_CONFLICT,
                 "Нельзя удалить опубликованный сценарий. Архивируйте.",
             )
+        title = scenario.title
+        sid = scenario.id
         db.delete(scenario)
         db.flush()
+        log_action(
+            db,
+            actor_id=actor.id,
+            action="scenario.delete",
+            entity_type="scenario",
+            entity_id=sid,
+            meta={"title": title},
+        )
 
     # ─── listing / read ───────────────────────────────────────
 
@@ -258,9 +305,12 @@ class ScenarioService:
         actor: User,
         status_filter: str | None = None,
     ) -> list[ScenarioListOut]:
-        q = db.query(Scenario)
+        q = db.query(Scenario).options(
+            selectinload(Scenario.author),
+            selectinload(Scenario.assignments),
+        )
         role = actor.role.name
-        if role == "student":
+        if role == RoleName.STUDENT:
             # Published + assigned to the student's group (§6.4).
             if actor.group_id is None:
                 return []
@@ -271,7 +321,7 @@ class ScenarioService:
                     ScenarioGroup.group_id == actor.group_id,
                 )
             )
-        elif role == "teacher":
+        elif role == RoleName.TEACHER:
             # Own (any status) or published (any author).
             q = q.filter(
                 (Scenario.author_id == actor.id) | (Scenario.status == "published")
@@ -284,7 +334,22 @@ class ScenarioService:
 
         q = q.order_by(Scenario.updated_at.desc())
         items = q.all()
-        return [_to_list_out(s, db) for s in items]
+
+        if not items:
+            return []
+
+        from sqlalchemy import func as _f
+
+        ids = [s.id for s in items]
+        counts: dict[int, int] = dict(
+            db.query(
+                ScenarioNode.scenario_id, _f.count(ScenarioNode.id)
+            )
+            .filter(ScenarioNode.scenario_id.in_(ids))
+            .group_by(ScenarioNode.scenario_id)
+            .all()
+        )
+        return [_to_list_out(s, db, node_count=counts.get(s.id, 0)) for s in items]
 
     @classmethod
     def get_for(
@@ -293,7 +358,7 @@ class ScenarioService:
         scenario = _load_scenario_or_404(db, scenario_id)
         role = actor.role.name
 
-        if role == "student":
+        if role == RoleName.STUDENT:
             if not _student_can_see(db, scenario, actor):
                 raise HTTPException(
                     status.HTTP_403_FORBIDDEN,
@@ -303,7 +368,7 @@ class ScenarioService:
             return sanitize_scenario_for_student(full)
 
         if (
-            role == "teacher"
+            role == RoleName.TEACHER
             and scenario.author_id != actor.id
             and scenario.status != "published"
         ):
@@ -408,6 +473,18 @@ class ScenarioService:
             raise
 
         db.refresh(scenario)
+        log_action(
+            db,
+            actor_id=actor.id,
+            action="scenario.save_graph",
+            entity_type="scenario",
+            entity_id=scenario.id,
+            meta={
+                "version": scenario.version,
+                "nodes": len(graph_in.nodes),
+                "edges": len(graph_in.edges),
+            },
+        )
         return _to_full_out(scenario, db)
 
     # ─── publish / unpublish / archive ───────────────────────
@@ -463,6 +540,14 @@ class ScenarioService:
         scenario.published_at = datetime.now(tz=UTC)
         scenario.updated_at = scenario.published_at
         db.flush()
+        log_action(
+            db,
+            actor_id=actor.id,
+            action="scenario.publish",
+            entity_type="scenario",
+            entity_id=scenario.id,
+            meta={"version": scenario.version},
+        )
         return PublishResult(status="published", errors=[])
 
     @classmethod
@@ -482,6 +567,13 @@ class ScenarioService:
         scenario.published_at = None
         scenario.updated_at = datetime.now(tz=UTC)
         db.flush()
+        log_action(
+            db,
+            actor_id=actor.id,
+            action="scenario.unpublish",
+            entity_type="scenario",
+            entity_id=scenario.id,
+        )
         return PublishResult(status="draft", errors=[])
 
     @classmethod
@@ -493,6 +585,13 @@ class ScenarioService:
         scenario.status = "archived"
         scenario.updated_at = datetime.now(tz=UTC)
         db.flush()
+        log_action(
+            db,
+            actor_id=actor.id,
+            action="scenario.archive",
+            entity_type="scenario",
+            entity_id=scenario.id,
+        )
         return _to_list_out(scenario, db)
 
     # ─── assign to group ─────────────────────────────────────
@@ -520,7 +619,7 @@ class ScenarioService:
                 f"Группа с id={payload.group_id} не существует",
             )
         # Teacher can only assign to groups they're linked to.
-        if actor.role.name == "teacher":
+        if actor.role.name == RoleName.TEACHER:
             linked = (
                 db.query(TeacherGroup)
                 .filter(
@@ -558,6 +657,14 @@ class ScenarioService:
             )
         )
         db.flush()
+        log_action(
+            db,
+            actor_id=actor.id,
+            action="scenario.assign",
+            entity_type="scenario",
+            entity_id=scenario_id,
+            meta={"group_id": payload.group_id},
+        )
         return {"status": "assigned"}
 
     # ─── duplicate ───────────────────────────────────────────
@@ -613,6 +720,14 @@ class ScenarioService:
             )
         db.flush()
         db.refresh(clone)
+        log_action(
+            db,
+            actor_id=actor.id,
+            action="scenario.duplicate",
+            entity_type="scenario",
+            entity_id=clone.id,
+            meta={"source_id": scenario_id, "title": clone.title},
+        )
         return _to_full_out(clone, db)
 
     # ─── preview (§UI.1) ─────────────────────────────────────

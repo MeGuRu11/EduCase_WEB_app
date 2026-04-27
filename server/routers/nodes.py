@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from dependencies import get_current_user, require_role
-from models.user import User
+from models.user import RoleName, User
 from schemas.scenario import NodeOut, NodePatch
 from services.scenario_service import ScenarioService
 
@@ -29,7 +29,7 @@ class NodePatchBody(NodePatch):
 @router.patch(
     "/{node_id}",
     response_model=NodeOut,
-    dependencies=[Depends(require_role("teacher", "admin"))],
+    dependencies=[Depends(require_role(RoleName.TEACHER, RoleName.ADMIN))],
 )
 def patch_node(
     node_id: str,

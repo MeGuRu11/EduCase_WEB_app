@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from dependencies import get_current_user, require_role
-from models.user import User
+from models.user import RoleName, User
 from services.media_service import MediaService
 
 router = APIRouter(prefix="/api/media", tags=["media"])
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/media", tags=["media"])
 @router.post(
     "/upload",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_role("teacher", "admin"))],
+    dependencies=[Depends(require_role(RoleName.TEACHER, RoleName.ADMIN))],
 )
 async def upload_media(
     file: UploadFile = File(...),

@@ -170,3 +170,76 @@ def test_password_validator_rejects_weak_passwords(
         },
     )
     assert r.status_code == 422
+
+
+# ─── Task 2 — JTI blacklist / logout revocation ─────────────────────────────
+
+
+def _login(client, username: str, password: str) -> str:
+    r = client.post("/api/auth/login",
+                    json={"username": username, "password": password})
+    assert r.status_code == 200, r.text
+    return r.json()["access_token"]
+
+
+def test_logout_revokes_token(client, student_user) -> None:
+    token = _login(client, "student_fixture", "Student1!")
+    r_me = client.get("/api/auth/me",
+                      headers={"Authorization": f"Bearer {token}"})
+    assert r_me.status_code == 200
+
+    r_logout = client.post("/api/auth/logout",
+                           headers={"Authorization": f"Bearer {token}"})
+    assert r_logout.status_code == 200
+
+    # Same token must now be rejected.
+    r_after = client.get("/api/auth/me",
+                         headers={"Authorization": f"Bearer {token}"})
+    assert r_after.status_code == 401
+    assert "revoke" in r_after.json()["detail"].lower() or \
+           "revoked" in r_after.json()["detail"].lower()
+
+
+def test_revoked_token_rejected_with_clear_error(client, student_user) -> None:
+    token = _login(client, "student_fixture", "Student1!")
+    client.post("/api/auth/logout",
+                headers={"Authorization": f"Bearer {token}"})
+    r = client.get("/api/auth/me",
+                   headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 401
+    # Detail string should explicitly mention revocation, not generic "invalid".
+    assert "revok" in r.json()["detail"].lower()
+
+
+def test_logout_idempotent(client, student_user) -> None:
+    """Two consecutive logouts on the same token: first revokes, second is
+    rejected by ``get_current_user`` (401) — never 500."""
+    token = _login(client, "student_fixture", "Student1!")
+    r1 = client.post("/api/auth/logout",
+                     headers={"Authorization": f"Bearer {token}"})
+    r2 = client.post("/api/auth/logout",
+                     headers={"Authorization": f"Bearer {token}"})
+    assert r1.status_code == 200
+    assert r2.status_code == 401  # already revoked → 401, not 500
+
+
+def test_cleanup_removes_expired_blacklist_entries(
+    client, db_session, student_user,
+) -> None:
+    from datetime import datetime, timedelta
+
+    from models.token_blacklist import TokenBlacklist
+    from services.scheduler import _cleanup_expired_blacklist
+
+    token = _login(client, "student_fixture", "Student1!")
+    client.post("/api/auth/logout",
+                headers={"Authorization": f"Bearer {token}"})
+
+    # Force the blacklist row into the past (>1 day past expiry).
+    row = db_session.query(TokenBlacklist).one()
+    row.expires_at = datetime.now(tz=UTC) - timedelta(days=2)
+    db_session.flush()
+
+    deleted = _cleanup_expired_blacklist(db_session)
+    assert deleted == 1
+    assert db_session.query(TokenBlacklist).count() == 0

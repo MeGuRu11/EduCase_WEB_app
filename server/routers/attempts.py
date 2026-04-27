@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from dependencies import get_current_user, require_role
-from models.user import User
+from models.user import RoleName, User
 from schemas.attempt import (
     AttemptResultOut,
     AttemptStart,
@@ -36,7 +36,7 @@ router = APIRouter(prefix="/api/attempts", tags=["attempts"])
     "/start",
     response_model=AttemptStartOut,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_role("student", "teacher", "admin"))],
+    dependencies=[Depends(require_role(RoleName.STUDENT, RoleName.TEACHER, RoleName.ADMIN))],
 )
 def start_attempt(
     payload: AttemptStart,

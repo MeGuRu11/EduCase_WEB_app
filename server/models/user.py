@@ -10,6 +10,20 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
 
+class RoleName:
+    """Centralised role-string constants — replaces stringly-typed checks
+    sprinkled across services/routers. ``seed.py`` and tests still use the
+    raw strings on purpose (those rows define the ground truth)."""
+
+    ADMIN = "admin"
+    TEACHER = "teacher"
+    STUDENT = "student"
+
+    @classmethod
+    def all(cls) -> set[str]:
+        return {cls.ADMIN, cls.TEACHER, cls.STUDENT}
+
+
 class Role(Base):
     __tablename__ = "roles"
 

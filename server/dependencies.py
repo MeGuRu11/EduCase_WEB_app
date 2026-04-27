@@ -28,9 +28,14 @@ def get_current_user(
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED, "Token expired or invalid"
         ) from exc
+    jti = payload.get("jti")
+    if jti and AuthService.is_revoked(db, jti):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token revoked")
     user = db.get(User, user_id)
     if not user or not user.is_active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found or blocked")
+    # Stash the token payload on the request user so handlers can revoke it.
+    user._jwt_payload = payload  # type: ignore[attr-defined]
     return user
 
 

@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
-from models.user import Group, Role, TeacherGroup, User
+from models.user import Group, Role, RoleName, TeacherGroup, User
 from schemas.user import (
     UserBulkCSVRow,
     UserBulkError,
@@ -19,6 +19,7 @@ from schemas.user import (
     UserOut,
     UserUpdate,
 )
+from services.audit_service import log_action
 from services.auth_service import AuthService
 
 CSV_MAX_BYTES = 2 * 1024 * 1024  # §T.6 — 2 MB cap
@@ -55,7 +56,7 @@ class UserService:
     # ─── CRUD ──────────────────────────────────────────────────────────────
 
     @classmethod
-    def create(cls, db: Session, payload: UserCreate) -> User:
+    def create(cls, db: Session, payload: UserCreate, *, actor: User | None = None) -> User:
         if db.query(User).filter(User.username == payload.username).first() is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -82,6 +83,14 @@ class UserService:
         db.add(user)
         db.flush()
         db.refresh(user, ["role", "group"])
+        log_action(
+            db,
+            actor_id=actor.id if actor else None,
+            action="user.create",
+            entity_type="user",
+            entity_id=user.id,
+            meta={"username": user.username, "role_id": user.role_id},
+        )
         return user
 
     @classmethod
@@ -94,7 +103,7 @@ class UserService:
         actor: User,
     ) -> User:
         # Non-admin may only edit their own ``full_name`` and ``avatar_path``.
-        actor_is_admin = actor.role.name == "admin"
+        actor_is_admin = actor.role.name == RoleName.ADMIN
         if not actor_is_admin:
             if actor.id != user.id:
                 raise HTTPException(
@@ -113,15 +122,28 @@ class UserService:
                 detail=f"Группа с id={patch.group_id} не найдена",
             )
 
-        if patch.full_name is not None:
+        changed: dict[str, object] = {}
+        if patch.full_name is not None and patch.full_name != user.full_name:
+            changed["full_name"] = patch.full_name
             user.full_name = patch.full_name
-        if patch.group_id is not None:
+        if patch.group_id is not None and patch.group_id != user.group_id:
+            changed["group_id"] = patch.group_id
             user.group_id = patch.group_id
-        if patch.avatar_path is not None:
+        if patch.avatar_path is not None and patch.avatar_path != user.avatar_path:
+            changed["avatar_path"] = patch.avatar_path
             user.avatar_path = patch.avatar_path
 
         db.flush()
         db.refresh(user, ["role", "group"])
+        if changed:
+            log_action(
+                db,
+                actor_id=actor.id,
+                action="user.update",
+                entity_type="user",
+                entity_id=user.id,
+                meta={"changed": list(changed.keys())},
+            )
         return user
 
     @classmethod
@@ -134,11 +156,20 @@ class UserService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Нельзя заблокировать самого себя",
             )
+        was_active = user.is_active
         user.is_active = is_active
         if is_active:
             user.login_attempts = 0
             user.locked_until = None
         db.flush()
+        if was_active != is_active:
+            log_action(
+                db,
+                actor_id=actor.id,
+                action="user.unblock" if is_active else "user.block",
+                entity_type="user",
+                entity_id=user.id,
+            )
         return user
 
     @classmethod
@@ -178,15 +209,15 @@ class UserService:
         q = db.query(User).options(joinedload(User.role), joinedload(User.group))
 
         # Teacher sees only students of groups she's linked to via teacher_groups.
-        if actor.role.name == "teacher":
+        if actor.role.name == RoleName.TEACHER:
             linked_groups = select(TeacherGroup.group_id).where(
                 TeacherGroup.teacher_id == actor.id
             )
             q = q.join(Role, User.role_id == Role.id).filter(
-                Role.name == "student",
+                Role.name == RoleName.STUDENT,
                 User.group_id.in_(linked_groups),
             )
-        elif actor.role.name != "admin":
+        elif actor.role.name != RoleName.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Недостаточно прав",
@@ -213,7 +244,9 @@ class UserService:
     # ─── Bulk CSV upload (§T.6) ────────────────────────────────────────────
 
     @classmethod
-    def bulk_csv(cls, db: Session, *, blob: bytes) -> UserBulkResult:
+    def bulk_csv(
+        cls, db: Session, *, blob: bytes, actor: User | None = None
+    ) -> UserBulkResult:
         if len(blob) > CSV_MAX_BYTES:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -314,6 +347,14 @@ class UserService:
             created += 1
         db.flush()
 
+        log_action(
+            db,
+            actor_id=actor.id if actor else None,
+            action="user.bulk_csv",
+            entity_type="user",
+            entity_id=None,
+            meta={"count": created},
+        )
         return UserBulkResult(created=created, errors=[])
 
     @staticmethod
