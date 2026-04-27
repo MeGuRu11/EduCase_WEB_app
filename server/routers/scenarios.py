@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from dependencies import get_current_user, require_role
-from models.user import User
+from models.user import RoleName, User
 from schemas.scenario import (
     GraphIn,
     PublishResult,
@@ -52,7 +52,7 @@ def list_scenarios(
     "/",
     response_model=ScenarioFullOut,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_role("teacher", "admin"))],
+    dependencies=[Depends(require_role(RoleName.TEACHER, RoleName.ADMIN))],
 )
 def create_scenario(
     payload: ScenarioCreate,
@@ -74,7 +74,7 @@ def get_scenario(
 @router.patch(
     "/{scenario_id}",
     response_model=ScenarioFullOut,
-    dependencies=[Depends(require_role("teacher", "admin"))],
+    dependencies=[Depends(require_role(RoleName.TEACHER, RoleName.ADMIN))],
 )
 def update_scenario(
     scenario_id: int,
@@ -90,7 +90,7 @@ def update_scenario(
 @router.delete(
     "/{scenario_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(require_role("teacher", "admin"))],
+    dependencies=[Depends(require_role(RoleName.TEACHER, RoleName.ADMIN))],
 )
 def delete_scenario(
     scenario_id: int,
@@ -104,7 +104,7 @@ def delete_scenario(
 @router.put(
     "/{scenario_id}/graph",
     response_model=ScenarioFullOut,
-    dependencies=[Depends(require_role("teacher", "admin"))],
+    dependencies=[Depends(require_role(RoleName.TEACHER, RoleName.ADMIN))],
 )
 def save_graph(
     scenario_id: int,
@@ -120,7 +120,7 @@ def save_graph(
 @router.post(
     "/{scenario_id}/publish",
     response_model=PublishResult,
-    dependencies=[Depends(require_role("teacher", "admin"))],
+    dependencies=[Depends(require_role(RoleName.TEACHER, RoleName.ADMIN))],
 )
 def publish_scenario(
     scenario_id: int,
@@ -133,7 +133,7 @@ def publish_scenario(
 @router.post(
     "/{scenario_id}/unpublish",
     response_model=PublishResult,
-    dependencies=[Depends(require_role("teacher", "admin"))],
+    dependencies=[Depends(require_role(RoleName.TEACHER, RoleName.ADMIN))],
 )
 def unpublish_scenario(
     scenario_id: int,
@@ -146,7 +146,7 @@ def unpublish_scenario(
 @router.post(
     "/{scenario_id}/archive",
     response_model=ScenarioListOut,
-    dependencies=[Depends(require_role("teacher", "admin"))],
+    dependencies=[Depends(require_role(RoleName.TEACHER, RoleName.ADMIN))],
 )
 def archive_scenario(
     scenario_id: int,
@@ -158,7 +158,7 @@ def archive_scenario(
 
 @router.post(
     "/{scenario_id}/assign",
-    dependencies=[Depends(require_role("teacher", "admin"))],
+    dependencies=[Depends(require_role(RoleName.TEACHER, RoleName.ADMIN))],
 )
 def assign_scenario(
     scenario_id: int,
@@ -175,7 +175,7 @@ def assign_scenario(
     "/{scenario_id}/duplicate",
     response_model=ScenarioFullOut,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_role("teacher", "admin"))],
+    dependencies=[Depends(require_role(RoleName.TEACHER, RoleName.ADMIN))],
 )
 def duplicate_scenario(
     scenario_id: int,
@@ -188,7 +188,7 @@ def duplicate_scenario(
 @router.post(
     "/{scenario_id}/preview",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_role("teacher", "admin"))],
+    dependencies=[Depends(require_role(RoleName.TEACHER, RoleName.ADMIN))],
 )
 def preview_scenario(
     scenario_id: int,

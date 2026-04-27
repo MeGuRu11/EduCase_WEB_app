@@ -38,7 +38,7 @@ MEDIA_LIMITS = {
 MAX_LOGIN_ATTEMPTS = 5
 LOCKOUT_MINUTES = 30
 
-APP_VERSION = os.getenv("APP_VERSION", "1.0.0")
+APP_VERSION = os.getenv("APP_VERSION", "1.1.0")
 
 # §T.8 — explicit list, never "*". `allow_credentials=True` forbids wildcards.
 CORS_ORIGINS: list[str] = [

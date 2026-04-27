@@ -3,10 +3,13 @@
 * bcrypt cost=12 for password hashing (AGENTS.md backend rule)
 * HS256 JWT — access 8h, refresh 7d (config.py)
 * login rate limiting via ``users.login_attempts`` — 5 tries → 30-min lockout
+* every access token carries a ``jti`` (UUID4) that ``logout`` can revoke
+  via the ``token_blacklist`` table (pre-Stage-4 Task 2).
 """
 
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
@@ -22,6 +25,7 @@ from config import (
     MAX_LOGIN_ATTEMPTS,
     REFRESH_TOKEN_EXPIRE_DAYS,
 )
+from models.token_blacklist import TokenBlacklist
 from models.user import User
 
 BCRYPT_ROUNDS = 12
@@ -55,6 +59,7 @@ class AuthService:
             "type": kind,
             "iat": int(now.timestamp()),
             "exp": int((now + ttl).timestamp()),
+            "jti": uuid.uuid4().hex,
         }
         return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
@@ -78,6 +83,54 @@ class AuthService:
                 detail="Неверный тип токена",
             )
         return payload
+
+    # ─── JTI blacklist (Task 2) ────────────────────────────────────────────
+
+    @staticmethod
+    def is_revoked(db: Session, jti: str) -> bool:
+        try:
+            jti_uuid = uuid.UUID(jti)
+        except (ValueError, TypeError):
+            # Token without a parseable jti is treated as the worst case —
+            # but we still allow the request rather than locking everyone out
+            # if a legacy pre-Task-2 token is presented during rollout.
+            return False
+        return (
+            db.query(TokenBlacklist.jti)
+            .filter(TokenBlacklist.jti == jti_uuid)
+            .first()
+            is not None
+        )
+
+    @staticmethod
+    def revoke_token(db: Session, *, payload: dict) -> bool:
+        """Insert a ``token_blacklist`` row from a decoded token payload.
+
+        Idempotent: a duplicate jti is treated as success.
+        Returns True iff a new row was inserted.
+        """
+        jti_str = payload.get("jti")
+        sub = payload.get("sub")
+        exp = payload.get("exp")
+        if not jti_str or not sub or not exp:
+            # Pre-Task-2 token (no jti) — nothing to revoke. Treat logout as
+            # idempotent success so the client UX still ends the session.
+            return False
+        try:
+            jti_uuid = uuid.UUID(jti_str)
+        except (ValueError, TypeError):
+            return False
+        if AuthService.is_revoked(db, jti_str):
+            return False
+        db.add(
+            TokenBlacklist(
+                jti=jti_uuid,
+                user_id=int(sub),
+                expires_at=datetime.fromtimestamp(int(exp), tz=UTC),
+            )
+        )
+        db.flush()
+        return True
 
     # ─── Login flow ─────────────────────────────────────────────────────────
 

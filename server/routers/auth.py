@@ -11,6 +11,7 @@ from dependencies import get_current_user
 from models.user import User
 from schemas.auth import LoginRequest, LogoutResponse, RefreshRequest, TokenResponse
 from schemas.user import UserOut
+from services.audit_service import log_action
 from services.auth_service import AuthService
 from services.user_service import UserService
 
@@ -57,8 +58,24 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> TokenResp
 
 
 @router.post("/logout", response_model=LogoutResponse)
-def logout(_current: User = Depends(get_current_user)) -> LogoutResponse:
-    # JWT is stateless — blacklist is a V2 feature (§A.2).
+def logout(
+    current: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> LogoutResponse:
+    """Revoke the access token's ``jti`` so the same token can no longer
+    authenticate any endpoint. Idempotent: a second call with the same (now
+    revoked) token would have already been rejected by ``get_current_user``.
+    """
+    payload = getattr(current, "_jwt_payload", {}) or {}
+    AuthService.revoke_token(db, payload=payload)
+    log_action(
+        db,
+        actor_id=current.id,
+        action="user.logout",
+        entity_type="user",
+        entity_id=current.id,
+        meta={"jti": payload.get("jti")},
+    )
     return LogoutResponse(status="ok")
 
 

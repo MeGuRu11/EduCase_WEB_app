@@ -69,6 +69,14 @@ class Scenario(Base):
     )
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # ``author`` is opt-in-loaded via ``selectinload`` in list paths to avoid
+    # N+1 (RETRO_AUDIT priority 3); ``lazy="raise"`` would force callers to
+    # be explicit, but loading-by-pk on a single scenario is cheap, so we let
+    # SQLAlchemy default lazy="select" keep ad-hoc reads working.
+    author: Mapped[User | None] = relationship(  # type: ignore[name-defined] # noqa: F821
+        "User",
+        foreign_keys=[author_id],
+    )
     nodes: Mapped[list[ScenarioNode]] = relationship(
         back_populates="scenario",
         cascade="all, delete-orphan",

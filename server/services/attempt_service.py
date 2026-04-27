@@ -21,11 +21,11 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from models.attempt import Attempt, AttemptStep
 from models.scenario import Scenario, ScenarioGroup, ScenarioNode
-from models.user import User
+from models.user import RoleName, User
 from schemas.attempt import (
     AttemptResultOut,
     AttemptStartOut,
@@ -42,6 +42,7 @@ from schemas.scenario import (
     NodeOut,
     sanitize_scenario_for_student,
 )
+from services.audit_service import log_action
 from services.grader_service import GraderService
 from services.graph_engine import GraphEngine
 from services.scenario_service import _to_full_out  # internal helper, OK for service-to-service.
@@ -125,11 +126,11 @@ def _load_attempt(db: Session, attempt_id: int) -> Attempt:
 
 def _ensure_attempt_owner(attempt: Attempt, actor: User) -> None:
     role = actor.role.name
-    if role == "admin":
+    if role == RoleName.ADMIN:
         return
-    if role == "student" and attempt.user_id == actor.id:
+    if role == RoleName.STUDENT and attempt.user_id == actor.id:
         return
-    if role == "teacher":
+    if role == RoleName.TEACHER:
         # Teacher owns analytics for their own scenarios only; use scenario_service for read access.
         scenario_owner = attempt.scenario.author_id if attempt.scenario else None
         if scenario_owner == actor.id:
@@ -231,7 +232,7 @@ class AttemptService:
     def start(cls, db: Session, *, scenario_id: int, actor: User) -> AttemptStartOut:
         scenario = _load_scenario(db, scenario_id)
 
-        if actor.role.name == "student" and not _student_can_attempt(db, scenario, actor):
+        if actor.role.name == RoleName.STUDENT and not _student_can_attempt(db, scenario, actor):
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN,
                 "Сценарий не назначен вашей группе",
@@ -402,7 +403,9 @@ class AttemptService:
                 )
             )
             if next_node_id is None:
-                cls._finalise(db, attempt, reason="reached_final")
+                cls._finalise(
+                    db, attempt, reason="reached_final", actor_id=actor.id
+                )
             else:
                 attempt.current_node_id = next_node_id
             db.flush()
@@ -417,7 +420,7 @@ class AttemptService:
         db.refresh(attempt)
         path = [s.node_id for s in attempt.steps]
         next_node = (
-            _node_for_student(graph, attempt.current_node_id, sanitise=actor.role.name == "student")
+            _node_for_student(graph, attempt.current_node_id, sanitise=actor.role.name == RoleName.STUDENT)
             if attempt.status == "in_progress" and attempt.current_node_id
             else None
         )
@@ -472,7 +475,7 @@ class AttemptService:
         attempt = _load_attempt(db, attempt_id)
         _ensure_attempt_owner(attempt, actor)
         if attempt.status == "in_progress":
-            cls._finalise(db, attempt, reason="manual")
+            cls._finalise(db, attempt, reason="manual", actor_id=actor.id)
         scenario = _load_scenario(db, attempt.scenario_id)
         return _result_from(attempt, scenario)
 
@@ -487,16 +490,46 @@ class AttemptService:
                 (attempt.finished_at - attempt.started_at).total_seconds()
             )
             db.flush()
+            log_action(
+                db,
+                actor_id=actor.id,
+                action="attempt.abandon",
+                entity_type="attempt",
+                entity_id=attempt.id,
+            )
         return {"status": "abandoned"}
 
     @classmethod
-    def _finalise(cls, db: Session, attempt: Attempt, *, reason: str) -> None:
+    def _finalise(
+        cls,
+        db: Session,
+        attempt: Attempt,
+        *,
+        reason: str,
+        actor_id: int | None = None,
+    ) -> None:
         attempt.status = "completed"
         attempt.finished_at = _now()
         attempt.duration_sec = int(
             (attempt.finished_at - attempt.started_at).total_seconds()
         )
         db.flush()
+        # Map ``reason`` → audit ``action``: ``time_expired`` (APScheduler) is
+        # the only system-attributed reason; ``manual`` and ``reached_final``
+        # are owned by the student/actor that walked the graph.
+        is_system = reason == "time_expired"
+        log_action(
+            db,
+            actor_id=None if is_system else actor_id,
+            action="attempt.auto_finish" if is_system else "attempt.finish",
+            entity_type="attempt",
+            entity_id=attempt.id,
+            meta={
+                "reason": reason,
+                "total_score": attempt.total_score,
+                "max_score": attempt.max_score,
+            },
+        )
 
     # ─── time-remaining (§A.7) ──────────────────────────────
 
@@ -526,16 +559,19 @@ class AttemptService:
         actor: User,
         scenario_id: int | None = None,
     ) -> list[AttemptSummaryOut]:
-        q = db.query(Attempt).filter(Attempt.user_id == actor.id)
+        q = (
+            db.query(Attempt)
+            .options(selectinload(Attempt.scenario))
+            .filter(Attempt.user_id == actor.id)
+        )
         if scenario_id is not None:
             q = q.filter(Attempt.scenario_id == scenario_id)
         q = q.order_by(Attempt.started_at.desc())
-        out: list[AttemptSummaryOut] = []
-        for attempt in q.all():
-            scenario = db.get(Scenario, attempt.scenario_id)
-            if scenario:
-                out.append(_summary_from(attempt, scenario))
-        return out
+        return [
+            _summary_from(attempt, attempt.scenario)
+            for attempt in q.all()
+            if attempt.scenario is not None
+        ]
 
     @classmethod
     def get_detail(

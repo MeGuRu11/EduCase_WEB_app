@@ -598,3 +598,52 @@ def test_patch_node_updates_data(client: TestClient, teacher_token: str) -> None
     body = resp.json()
     assert body["data"]["question"] == "Новый вопрос?"
     assert body["title"] == "Обновлённый вопрос"
+
+
+# ─── Pre-Stage-4 Task 3 — N+1 regression ─────────────────────────────────
+
+
+from contextlib import contextmanager  # noqa: E402
+
+
+@contextmanager
+def _assert_max_queries(db_session, limit: int):
+    """Listen on ``before_cursor_execute`` to count SQL statements."""
+    from sqlalchemy import event
+
+    counter = {"n": 0}
+
+    def _on_exec(*_args, **_kwargs):
+        counter["n"] += 1
+
+    bind = db_session.get_bind()
+    event.listen(bind, "before_cursor_execute", _on_exec)
+    try:
+        yield counter
+    finally:
+        event.remove(bind, "before_cursor_execute", _on_exec)
+    assert counter["n"] <= limit, (
+        f"Query count {counter['n']} exceeded limit {limit}"
+    )
+
+
+def test_list_scenarios_no_n_plus_one(
+    client: TestClient,
+    teacher_token: str,
+    db_session: Session,
+):
+    """Listing many scenarios must not scale linearly with row count."""
+    # Create 8 scenarios.
+    for i in range(8):
+        client.post(
+            "/api/scenarios/",
+            json={"title": f"Сценарий {i}", "description": "x", "passing_score": 50},
+            headers=auth_header(teacher_token),
+        )
+
+    # Tight ceiling: outer SELECT, eager-loaded author + assignments,
+    # node-count aggregate, optional scenario.author from joinedload — total ≤ 6.
+    with _assert_max_queries(db_session, 6):
+        r = client.get("/api/scenarios/", headers=auth_header(teacher_token))
+        assert r.status_code == 200
+        assert len(r.json()) == 8

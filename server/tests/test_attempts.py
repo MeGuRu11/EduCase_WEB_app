@@ -610,3 +610,53 @@ def test_duplicate_scenario_preserves_decision_routing(
     assert r.status_code == 200, r.text
     assert r.json()["step_result"]["score"] == 10.0  # Decision routing intact.
     assert r.json()["step_result"]["is_correct"] is True
+
+
+# ─── Pre-Stage-4 Task 3 — N+1 regression ─────────────────────────────────
+
+
+from contextlib import contextmanager  # noqa: E402
+
+
+@contextmanager
+def _assert_max_queries(db_session, limit: int):
+    from sqlalchemy import event
+
+    counter = {"n": 0}
+
+    def _on_exec(*_args, **_kwargs):
+        counter["n"] += 1
+
+    bind = db_session.get_bind()
+    event.listen(bind, "before_cursor_execute", _on_exec)
+    try:
+        yield counter
+    finally:
+        event.remove(bind, "before_cursor_execute", _on_exec)
+    assert counter["n"] <= limit, (
+        f"Query count {counter['n']} exceeded limit {limit}"
+    )
+
+
+def test_list_attempts_for_student_no_n_plus_one(
+    client, teacher_token, student_token, student_user, db_session,
+):
+    """Student listing N attempts must run a bounded number of SELECTs."""
+    sid, _ = _create_publish_assign(client, teacher_token, student_user, db_session)
+
+    # 5 sequential attempts: start → finish → start → finish ...
+    for _ in range(5):
+        aid = client.post(
+            "/api/attempts/start", json={"scenario_id": sid},
+            headers=auth_header(student_token),
+        ).json()["attempt_id"]
+        client.post(f"/api/attempts/{aid}/finish",
+                    headers=auth_header(student_token))
+
+    # Outer SELECT + selectinload(scenario) ⇒ at most a handful of queries
+    # regardless of attempt count.
+    with _assert_max_queries(db_session, 8):
+        r = client.get(f"/api/attempts/my?scenario_id={sid}",
+                       headers=auth_header(student_token))
+        assert r.status_code == 200
+        assert len(r.json()) == 5

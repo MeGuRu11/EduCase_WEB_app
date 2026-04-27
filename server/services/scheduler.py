@@ -2,18 +2,21 @@
 
 Jobs registered on startup:
   * ``auto_finish_expired_attempts`` — every 60 s (§U.3)
+  * ``cleanup_expired_blacklist`` — every hour (Task 2, pre-Stage-4 hardening)
   * ``daily_backup`` — 03:00 UTC (§T.5, stubbed until Stage 4 owns backup_service)
   * ``cleanup_old_logs`` — 04:00 UTC (stubbed)
 
 Timing tests live in ``test_attempts.py::test_auto_finish_expired_attempts_*``
-and exercise the underlying service directly — the scheduler itself is only
-a thin registration layer, so we do not run APScheduler inside pytest.
+and ``test_auth.py::test_cleanup_removes_expired_blacklist_entries``; the
+scheduler itself is only a thin registration layer, so we do not run
+APScheduler inside pytest.
 """
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Any
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -58,6 +61,24 @@ def _auto_finish_expired(session: Any) -> int:
     return count
 
 
+def _cleanup_expired_blacklist(session: Any) -> int:
+    """Drop ``token_blacklist`` rows whose ``expires_at`` is older than 1 day —
+    keeping the recent past for ops auditing without unbounded growth."""
+    from datetime import timedelta
+
+    from models.token_blacklist import TokenBlacklist
+
+    cutoff = datetime.now(tz=UTC) - timedelta(days=1)
+    deleted = (
+        session.query(TokenBlacklist)
+        .filter(TokenBlacklist.expires_at < cutoff)
+        .delete(synchronize_session=False)
+    )
+    if deleted:
+        logger.info("cleanup_expired_blacklist: deleted %s rows", deleted)
+    return int(deleted)
+
+
 def _daily_backup(session: Any) -> None:
     logger.info("daily_backup: stub (owned by backup_service in Stage 4)")
 
@@ -84,6 +105,14 @@ def start_scheduler() -> BackgroundScheduler:
         _with_session(_auto_finish_expired),
         IntervalTrigger(seconds=60),
         id="auto_finish_expired_attempts",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        _with_session(_cleanup_expired_blacklist),
+        IntervalTrigger(hours=1),
+        id="cleanup_expired_blacklist",
         replace_existing=True,
         max_instances=1,
         coalesce=True,
