@@ -2,14 +2,12 @@
 
 Jobs registered on startup:
   * ``auto_finish_expired_attempts`` — every 60 s (§U.3)
-  * ``cleanup_expired_blacklist`` — every hour (Task 2, pre-Stage-4 hardening)
-  * ``daily_backup`` — 03:00 UTC (§T.5, stubbed until Stage 4 owns backup_service)
-  * ``cleanup_old_logs`` — 04:00 UTC (stubbed)
+  * ``cleanup_expired_blacklist`` — every hour
+  * ``daily_backup`` — 02:00 UTC (Stage 4: BackupService.create_backup, §T.5)
+  * ``cleanup_old_logs`` — 04:00 UTC (Stage 4: AdminService.cleanup_old_logs, §T.4)
 
-Timing tests live in ``test_attempts.py::test_auto_finish_expired_attempts_*``
-and ``test_auth.py::test_cleanup_removes_expired_blacklist_entries``; the
-scheduler itself is only a thin registration layer, so we do not run
-APScheduler inside pytest.
+The scheduler is a thin registration layer; the underlying behaviour is
+exercised end-to-end via the corresponding service-level pytest cases.
 """
 
 from __future__ import annotations
@@ -79,12 +77,35 @@ def _cleanup_expired_blacklist(session: Any) -> int:
     return int(deleted)
 
 
-def _daily_backup(session: Any) -> None:
-    logger.info("daily_backup: stub (owned by backup_service in Stage 4)")
+def _daily_backup(session: Any) -> dict | None:
+    """Stage 4 §T.5 — automated nightly pg_dump.
+
+    Rate-limit (5 min) inside ``BackupService.create_backup`` is harmless here
+    because the cron only fires once per day; we just log and continue."""
+    from fastapi import HTTPException
+
+    from services.backup_service import BackupService
+
+    try:
+        result = BackupService.create_backup(session, actor_id=None)
+        logger.info(
+            "daily_backup: created %s (%.2f MB in %.2fs)",
+            result["filename"], result["size_mb"], result["duration_sec"],
+        )
+        return result
+    except HTTPException as exc:  # pragma: no cover — real subprocess only
+        logger.error("daily_backup failed: %s", exc.detail)
+        return None
 
 
-def _cleanup_old_logs(session: Any) -> None:
-    logger.info("cleanup_old_logs: stub (owned by admin_service in Stage 4)")
+def _cleanup_old_logs(session: Any) -> int:
+    """Stage 4 §T.4 — drop ``system_logs`` past their retention window."""
+    from services.admin_service import cleanup_old_logs
+
+    deleted = cleanup_old_logs(session)
+    if deleted:
+        logger.info("cleanup_old_logs: deleted %s rows", deleted)
+    return int(deleted)
 
 
 # ────── public API ──────
@@ -119,7 +140,7 @@ def start_scheduler() -> BackgroundScheduler:
     )
     scheduler.add_job(
         _with_session(_daily_backup),
-        CronTrigger(hour=3, minute=0),
+        CronTrigger(hour=2, minute=0),
         id="daily_backup",
         replace_existing=True,
     )

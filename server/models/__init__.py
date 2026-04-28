@@ -5,6 +5,7 @@ from models.audit_log import AuditLog
 from models.media import MediaFile
 from models.node_content import FormTemplate, FormTemplateField
 from models.scenario import Scenario, ScenarioEdge, ScenarioGroup, ScenarioNode
+from models.system import SystemLog, SystemSetting
 from models.token_blacklist import TokenBlacklist
 from models.user import Discipline, Group, Role, TeacherGroup, Topic, User
 
@@ -22,6 +23,8 @@ __all__ = [
     "ScenarioEdge",
     "ScenarioGroup",
     "ScenarioNode",
+    "SystemLog",
+    "SystemSetting",
     "TeacherGroup",
     "TokenBlacklist",
     "Topic",

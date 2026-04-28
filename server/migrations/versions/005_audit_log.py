@@ -4,11 +4,10 @@ Why now: Stage 4 analytics joins on ``actor_id`` for "who published / who
 blocked / who assigned". Without a dedicated audit table it cannot answer
 those questions. See ``docs/RETRO_AUDIT_STAGE0-3.md`` priority 1.
 
-Revision 005 chains directly off 003; revision 004 (system_settings /
-system_logs) is owned by Stage 4 and will be inserted as a sibling later.
+Revision 005 chains directly off 004 (system tables).
 
 Revision ID: 005
-Revises: 003
+Revises: 004
 Create Date: 2026-04-25
 """
 
@@ -19,7 +18,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "005"
-down_revision = "003"
+down_revision = "004"
 branch_labels = None
 depends_on = None
 

@@ -1,5 +1,37 @@
 # EpiCase — CHANGELOG
 
+## 1.2.0 — 2026-04-25 — Stage 4 (Analytics + Admin + Backup/Restore)
+
+### Added
+
+- **Migration 004** (`004_system.py`): `system_settings` (key/value) and
+  `system_logs` with `idx_logs_level`, `idx_logs_date`, partial
+  `idx_logs_errors` (only WARNING/ERROR/CRITICAL).
+- **Models**: `SystemSetting`, `SystemLog`.
+- **Schemas**: `analytics.py` (StudentDashboardOut, TeacherScenarioStatsOut,
+  PathHeatmapOut, AdminStatsOut, etc.) and `system.py` (SysInfoOut, BackupInfo,
+  HealthCheckOut, SystemSettingUpdate).
+- **AnalyticsService**: GROUP-BY aggregations (no N+1) for student dashboard,
+  teacher scenario stats with score distribution + ranking, path heatmap,
+  admin stats with `pg_database_size`, XLSX/PDF export.
+- **BackupService** (§T.5 + §T.7): pg_dump/pg_restore with rate-limit
+  (5-minute cooldown), path-traversal guard, full restore orchestration —
+  maintenance_mode toggle, abandon in-progress attempts, alembic version
+  check (warns when backup is from the future).
+- **AdminService**: sysinfo, settings (idempotent PUT — E-15), log filtering,
+  retention cleanup (§T.4), `/api/health` 5-component check (db, disk,
+  backup age, scheduler, errors_24h).
+- **Routers** `/api/analytics/*` (5 endpoints), `/api/admin/*` (8 endpoints),
+  `/api/health` (public).
+- **Scheduler** wired: `daily_backup` 02:00 UTC → BackupService;
+  `cleanup_old_logs` 04:00 UTC → AdminService retention job.
+
+### Tests
+
+- `+test_analytics.py` (13 tests).
+- `+test_admin.py` (17 tests).
+- Total backend suite: 153 → **183/183 green**.
+
 ## 1.1.0 — 2026-04-25 — Backend pre-Stage-4 hardening
 
 ### Added
