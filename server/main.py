@@ -10,6 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from config import APP_VERSION, CORS_ORIGINS, ENV, MEDIA_DIR, init_dirs
+from routers import admin as admin_router
+from routers import analytics as analytics_router
 from routers import attempts as attempts_router
 from routers import auth as auth_router
 from routers import groups as groups_router
@@ -65,6 +67,9 @@ app.include_router(scenarios_router.router)
 app.include_router(nodes_router.router)
 app.include_router(media_router.router)
 app.include_router(attempts_router.router)
+app.include_router(analytics_router.router)
+app.include_router(admin_router.router)
+app.include_router(admin_router.public_router)
 
 
 @app.get("/api/ping")
