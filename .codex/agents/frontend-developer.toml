@@ -1,6 +1,6 @@
 name = "frontend-developer"
 description = "React 19, TypeScript, React Flow 12, Tailwind 4 — always writes tests first"
-model = "gpt-5.4-codex"
+model = "gpt-5.5-codex"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 

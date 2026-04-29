@@ -11,7 +11,7 @@
 | Модель | Инструмент | Primary role |
 |---|---|---|
 | **Claude Opus 4.7** | Claude Code | Backend, архитектура, безопасность, сложная бизнес-логика, код-ревью |
-| **Codex GPT 5.4** | Codex CLI | Frontend, React-компоненты, vitest-тесты, UI-scaffolding |
+| **Codex GPT 5.5** | Codex CLI | Frontend, React-компоненты, vitest-тесты, UI-scaffolding |
 
 Pairing: Opus 4.7 проектирует и пишет контракты (Pydantic-схемы, API) → Codex пишет клиент под эти контракты → Opus 4.7 ревьюит и блокирует коммит, если что-то красное или нарушена безопасность.
 
@@ -29,7 +29,7 @@ Pairing: Opus 4.7 проектирует и пишет контракты (Pydan
 
 ---
 
-## Суб-агенты Codex GPT 5.4 (`.codex/agents/`)
+## Суб-агенты Codex GPT 5.5 (`.codex/agents/`)
 
 | Имя | Зона ответственности | Когда активируется |
 |---|---|---|
@@ -71,7 +71,7 @@ MEMORY.md                                  — обновляет в конце 
 .claude/agents/*.md, .claude/rules/*.md, .claude/commands/*.md
 ```
 
-### Codex GPT 5.4 владеет (`.codex/agents/frontend-developer` + `ui-scaffolder` + `test-writer`):
+### Codex GPT 5.5 владеет (`.codex/agents/frontend-developer` + `ui-scaffolder` + `test-writer`):
 
 **Frontend целиком:**
 ```
@@ -121,11 +121,11 @@ client/
 | **2** Scenarios + Graph | 3 дня | **Claude Opus 4.7** | backend-architect, database-optimizer | `graph_engine` полный, PUT /graph, publish/unpublish |
 | **3** Attempts + Grading | 3 дня | **Claude Opus 4.7** | backend-architect, security-engineer | `grader_service` 3 типа, server-таймер, F5-resume |
 | **4** Analytics + Admin | 2 дня | **Claude Opus 4.7** | database-optimizer, security-engineer | heatmap, XLSX/PDF export, backup/restore |
-| **5** Client scaffolding + Auth + UI kit | 2 дня | **Codex GPT 5.4** | ui-scaffolder, frontend-developer, test-writer | 12 UI-компонентов, LoginPage, ProtectedRoute |
-| **6** Scenario Editor | 5 дней | **Codex GPT 5.4** | frontend-developer, test-writer | React Flow editor, 6 nodes, debounce save |
-| **7** Case Player | 4 дня | **Codex GPT 5.4** | frontend-developer, test-writer | CasePlayer + 5 views, server-timer UI |
-| **8** Dashboards | 3 дня | **Codex GPT 5.4** | frontend-developer, test-writer | Heatmap chart, Recharts, XLSX/PDF buttons |
-| **9** Admin Panel | 2 дня | **Codex GPT 5.4** | frontend-developer, security-engineer (review) | Users CRUD, bulk CSV, triple-confirm restore |
+| **5** Client scaffolding + Auth + UI kit | 2 дня | **Codex GPT 5.5** | ui-scaffolder, frontend-developer, test-writer | 12 UI-компонентов, LoginPage, ProtectedRoute |
+| **6** Scenario Editor | 5 дней | **Codex GPT 5.5** | frontend-developer, test-writer | React Flow editor, 6 nodes, debounce save |
+| **7** Case Player | 4 дня | **Codex GPT 5.5** | frontend-developer, test-writer | CasePlayer + 5 views, server-timer UI |
+| **8** Dashboards | 3 дня | **Codex GPT 5.5** | frontend-developer, test-writer | Heatmap chart, Recharts, XLSX/PDF buttons |
+| **9** Admin Panel | 2 дня | **Codex GPT 5.5** | frontend-developer, security-engineer (review) | Users CRUD, bulk CSV, triple-confirm restore |
 | **10** Integration | 3 дня | **Оба** | security-engineer, reviewer, code-reviewer | Smoke test, Docker tars, README deploy, v1.0 tag |
 
 **Итого: ≈30 рабочих дней | ≈16 600 строк кода | ≥230 тестов.**
@@ -138,7 +138,7 @@ client/
 Claude Opus 4.7 (`backend-architect`), уровень reasoning — `xhigh`. Stage 2.
 
 **«Кто пишет компонент `<Button>`?»**
-Codex GPT 5.4 (`ui-scaffolder`). Stage 5. Claude ревьюит на соответствие DESIGN_SYSTEM §6.1.
+Codex GPT 5.5 (`ui-scaffolder`). Stage 5. Claude ревьюит на соответствие DESIGN_SYSTEM §6.1.
 
 **«Кто отвечает за backup/restore?»**
 Claude Opus 4.7 (`backend-architect` + `database-optimizer` + `security-engineer`). Stage 4. Это самая опасная операция в проекте — `xhigh` reasoning обязателен.

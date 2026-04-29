@@ -6,7 +6,7 @@
 >
 > Принцип: один промпт = один commit на границе Stage. Промпт содержит: контекст, цели, ссылки на документы, критерии приёмки.
 >
-> **Дата:** 2026-04-17 · **Модель:** Claude Opus 4.7 + Codex GPT 5.4
+> **Дата:** 2026-04-17 · **Модель:** Claude Opus 4.7 + Codex GPT 5.5
 
 ---
 
@@ -479,7 +479,7 @@ Commit: `feat: Stage 4 — Analytics + Admin + Backup/Restore [all tests green]`
 
 ## STAGE 5 — Client: Auth + UI kit + Layout
 
-### Владелец: Codex GPT 5.4 (`ui-scaffolder` + `frontend-developer` + `test-writer`)
+### Владелец: Codex GPT 5.5 (`ui-scaffolder` + `frontend-developer` + `test-writer`)
 ### Длительность: ~2 дня
 ### Целевые тесты: ≥30 vitest-тестов
 
@@ -618,7 +618,7 @@ correct_value, XSS, no hardcoded colors).
 
 ## STAGE 6 — Client: Scenario Editor
 
-### Владелец: Codex GPT 5.4 (`frontend-developer` + `test-writer`)
+### Владелец: Codex GPT 5.5 (`frontend-developer` + `test-writer`)
 ### Ревью: Claude Opus 4.7 (`security-engineer` + `code-reviewer`)
 ### Длительность: ~5 дней (самый сложный клиентский stage)
 ### Целевые тесты: ≥20 новых
@@ -719,7 +719,7 @@ Commit: `feat: Stage 6 — Scenario Editor with 6 node types [all tests green]`
 
 ## STAGE 7 — Client: Case Player
 
-### Владелец: Codex GPT 5.4 (`frontend-developer`)
+### Владелец: Codex GPT 5.5 (`frontend-developer`)
 ### Ревью: Claude Opus 4.7 (UX + security)
 ### Длительность: ~4 дня
 ### Целевые тесты: ≥15 новых
@@ -824,7 +824,7 @@ Commit: `feat: Stage 7 — Case Player [all tests green]`
 
 ## STAGE 8 — Client: Dashboards
 
-### Владелец: Codex GPT 5.4 (`frontend-developer`)
+### Владелец: Codex GPT 5.5 (`frontend-developer`)
 ### Длительность: ~3 дня
 ### Целевые тесты: ≥12 новых
 
@@ -892,7 +892,7 @@ Commit: `feat: Stage 8 — Dashboards and analytics [all tests green]`
 
 ## STAGE 9 — Client: Admin panel
 
-### Владелец: Codex GPT 5.4
+### Владелец: Codex GPT 5.5
 ### Ревью: Claude Opus 4.7 (`security-engineer` — критично для restore)
 ### Длительность: ~2 дня
 ### Целевые тесты: ≥10 новых
@@ -1128,11 +1128,11 @@ Commit: "chore: dep updates (minor/patch only) [all tests green]"
 | 2 | Claude Opus 4.7 | xhigh (graph_engine) | Stage 2 | ≥40 |
 | 3 | Claude Opus 4.7 | xhigh (grader) | Stage 3 | ≥40 |
 | 4 | Claude Opus 4.7 | xhigh (backup) | Stage 4 | ≥30 |
-| 5 | Codex GPT 5.4 | medium | Stage 5 | ≥30 |
-| 6 | Codex GPT 5.4 | high | Stage 6 | ≥20 |
-| 7 | Codex GPT 5.4 | high | Stage 7 | ≥15 |
-| 8 | Codex GPT 5.4 | medium | Stage 8 | ≥12 |
-| 9 | Codex GPT 5.4 | high | Stage 9 | ≥10 |
+| 5 | Codex GPT 5.5 | medium | Stage 5 | ≥30 |
+| 6 | Codex GPT 5.5 | high | Stage 6 | ≥20 |
+| 7 | Codex GPT 5.5 | high | Stage 7 | ≥15 |
+| 8 | Codex GPT 5.5 | medium | Stage 8 | ≥12 |
+| 9 | Codex GPT 5.5 | high | Stage 9 | ≥10 |
 | 10 | Оба | high | Stage 10 | все ≥230 |
 
 **Каждый промпт самодостаточен:** контекст → порядок работы → критерии приёмки →

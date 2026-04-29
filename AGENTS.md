@@ -19,7 +19,7 @@ Never invent APIs, models, or types outside these sources.
 
 ## Agent Roles
 - **Claude Opus 4.7**: architecture, backend, security audit, code review, graph_engine, grader_service, backup_service
-- **Codex GPT 5.4**: fast code generation, React components, tests, frontend, UI scaffolding
+- **Codex GPT 5.5**: fast code generation, React components, tests, frontend, UI scaffolding
 
 Full per-stage distribution: `docs/AGENT_TASKS.md`.
 Compact roster: `docs/AGENT_ROSTER.md`.

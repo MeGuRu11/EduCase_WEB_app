@@ -304,7 +304,7 @@ def health_check(db: Session = Depends(get_db), _=Depends(require_role("admin"))
 
 **Использование:** виджет в `AdminDashboard.tsx` с цветовой индикацией (success/warning/danger), опрос раз в 60 с.
 
-**Владелец:** Claude Opus 4.7 (endpoint) + Codex GPT 5.4 (widget в AdminDashboard), Stage 4 + Stage 9.
+**Владелец:** Claude Opus 4.7 (endpoint) + Codex GPT 5.5 (widget в AdminDashboard), Stage 4 + Stage 9.
 
 ---
 
@@ -326,7 +326,7 @@ def health_check(db: Session = Depends(get_db), _=Depends(require_role("admin"))
 
 **Обоснование:** Admin приходит на дашборд раз в день-два, этого достаточно для академии. Звуковое уведомление — чтобы привлечь внимание, если admin оставил открытый дашборд на втором мониторе.
 
-**Владелец:** Codex GPT 5.4 (`frontend-developer`), Stage 9.
+**Владелец:** Codex GPT 5.5 (`frontend-developer`), Stage 9.
 
 ---
 
@@ -384,7 +384,7 @@ scripts/
 **Статус:** Принято (с частичной интеграцией 3 паттернов)
 **Контекст:** [Ruflo](https://github.com/ruvnet/ruflo) (31.9k⭐, 6067+ коммитов, v3.5) — популярная enterprise-платформа мульти-агентной оркестрации для Claude Code. Предоставляет hive-mind swarms, 313 MCP tools, 64 типа агентов, SPARC methodology, Byzantine consensus, neural training pipeline и dual-mode Claude+Codex coordination.
 
-На первый взгляд — прямое попадание в нашу пару Claude Opus 4.7 + Codex GPT 5.4.
+На первый взгляд — прямое попадание в нашу пару Claude Opus 4.7 + Codex GPT 5.5.
 
 **Решение:** Ruflo **не устанавливается** как зависимость EpiCase. Используем только 3 паттерна **концептуально** (без самого инструмента):
 1. Statusline script в `.claude/statusline.sh` (собственная реализация, ~50 строк bash)

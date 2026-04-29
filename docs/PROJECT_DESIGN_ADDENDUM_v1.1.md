@@ -81,7 +81,7 @@ class HealthCheckOut(BaseModel):
 - Есть `warning` → overall `warning` (жёлтый)
 - Есть `error` → overall `error` (красный)
 
-**Владелец:** Claude Opus 4.7 (endpoint — Stage 4). Клиентский widget — Codex GPT 5.4 (Stage 9).
+**Владелец:** Claude Opus 4.7 (endpoint — Stage 4). Клиентский widget — Codex GPT 5.5 (Stage 9).
 
 ### SCALE.3 In-app error alerts в AdminDashboard (ADR-011)
 
@@ -125,7 +125,7 @@ useEffect(() => {
 
 **Accessibility:** визуальный индикатор работает и без звука. Звук — только усиление.
 
-**Владелец:** Codex GPT 5.4 (`frontend-developer`), Stage 9.
+**Владелец:** Codex GPT 5.5 (`frontend-developer`), Stage 9.
 
 ### SCALE.4 Deploy scripts (ADR-012)
 
@@ -284,21 +284,21 @@ exit 1
 
 ### X.1 Текущая пара агентов
 
-Проект разрабатывается в связке **Claude Opus 4.7 (Claude Code) + Codex GPT 5.4 (Codex CLI)**. Упоминание Gemini 3.1 Pro в §20 оригинального документа — **устаревшее**, игнорировать.
+Проект разрабатывается в связке **Claude Opus 4.7 (Claude Code) + Codex GPT 5.5 (Codex CLI)**. Упоминание Gemini 3.1 Pro в §20 оригинального документа — **устаревшее**, игнорировать.
 
 ### X.2 Источники правды для каждого агента
 
 | Агент | Корневой файл | Правила по путям | Суб-агенты | Команды |
 |---|---|---|---|---|
 | **Claude Opus 4.7** | `CLAUDE.md` → `AGENTS.md` | `.claude/rules/{api,backend,frontend}.md` | `.claude/agents/*.md` (5 штук) | `.claude/commands/*.md` (4 штуки) |
-| **Codex GPT 5.4** | `AGENTS.md` (через `project_doc_fallback_filenames`) | наследуется из `AGENTS.md` | `.codex/agents/*.toml` (4 штуки) | — |
+| **Codex GPT 5.5** | `AGENTS.md` (через `project_doc_fallback_filenames`) | наследуется из `AGENTS.md` | `.codex/agents/*.toml` (4 штуки) | — |
 
 ### X.3 Распределение зон ответственности
 
 Подробный per-stage разбор — в `docs/AGENT_TASKS.md`. Краткая сводка:
 
 - **Claude Opus 4.7:** всё backend, архитектура, безопасность, `graph_engine`, `grader_service`, `backup_service`, миграции, code-review, финальная сборка образов.
-- **Codex GPT 5.4:** всё frontend (React/TS), UI-scaffolding, Zustand stores, TanStack Query hooks, vitest-тесты компонентов, шаблонные backend-тесты (happy/auth/validation) под ревью Claude.
+- **Codex GPT 5.5:** всё frontend (React/TS), UI-scaffolding, Zustand stores, TanStack Query hooks, vitest-тесты компонентов, шаблонные backend-тесты (happy/auth/validation) под ревью Claude.
 
 ### X.4 MCP для Claude Code
 
@@ -1954,7 +1954,7 @@ op.create_index(
 - Компоненты — спецификация Button/Card/Badge/Input/Modal/Toast/ConfirmDialog/EmptyState/Table в §6 DESIGN_SYSTEM.md
 - Tailwind v4 `@theme` конфигурация в DESIGN_SYSTEM §10.1
 
-**Все UI-разработчики (Codex GPT 5.4 `frontend-developer`, `ui-scaffolder`) обязаны читать `DESIGN_SYSTEM.md` перед каждой задачей этапов 5–9.**
+**Все UI-разработчики (Codex GPT 5.5 `frontend-developer`, `ui-scaffolder`) обязаны читать `DESIGN_SYSTEM.md` перед каждой задачей этапов 5–9.**
 
 ---
 

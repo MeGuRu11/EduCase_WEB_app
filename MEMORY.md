@@ -13,6 +13,7 @@
 - Commit = stage boundary only
 
 ## Current Status
+- [x] **Lead Codex model updated**: GPT-5.4 → GPT-5.5 (2026-04-27) (GPT-5.5 released 2026-04-23, available in Codex)
 - [x] Starter archive unpacked
 - [x] **Design system v1.0 integrated**
       (client/public/branding.svg + design/DESIGN_SYSTEM.md + client/src/styles/tokens.css)
@@ -65,11 +66,11 @@
       scheduler wired to real BackupService.create_backup (02:00 UTC) +
       AdminService.cleanup_old_logs (04:00 UTC, §T.4 retention policy),
       XLSX/PDF export (openpyxl + reportlab).
-- [ ] STAGE 5 — Client: Auth + UI kit + Layout (Codex GPT 5.4)
-- [ ] STAGE 6 — Client: Scenario Editor (Codex GPT 5.4)
-- [ ] STAGE 7 — Client: Case Player (Codex GPT 5.4)
-- [ ] STAGE 8 — Client: Dashboards (Codex GPT 5.4)
-- [ ] STAGE 9 — Client: Admin panel (Codex GPT 5.4)
+- [ ] STAGE 5 — Client: Auth + UI kit + Layout (Codex GPT 5.5)
+- [ ] STAGE 6 — Client: Scenario Editor (Codex GPT 5.5)
+- [ ] STAGE 7 — Client: Case Player (Codex GPT 5.5)
+- [ ] STAGE 8 — Client: Dashboards (Codex GPT 5.5)
+- [ ] STAGE 9 — Client: Admin panel (Codex GPT 5.5)
 - [ ] STAGE 10 — Integration + deploy (Both)
 
 ## Test Status
@@ -126,7 +127,7 @@
 - Lead model: Opus 4.6 → Opus 4.7 (2026-04-16 release)
 
 ## Next Action
-→ start **Stage 5**: Client Auth + UI kit + Layout (Codex GPT 5.4 owns).
+→ start **Stage 5**: Client Auth + UI kit + Layout (Codex GPT 5.5 owns).
   Scope per `docs/AGENT_TASKS.md`: React 19 + Tailwind 4 + Zustand 5 +
   TanStack Query 5 scaffolding, login flow, ProtectedRoute, NotFoundPage /
   ForbiddenPage / ResourceNotFound (E-21), AppLayout + sidebar, ≥30 vitest

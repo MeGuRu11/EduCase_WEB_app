@@ -25,7 +25,7 @@
 | Frontend | React 19 · TypeScript 5.7 (strict) · @xyflow/react 12 · Zustand 5 + immer · TanStack Query 5 · Tailwind CSS 4 · React Hook Form + Zod · Recharts · framer-motion · sonner |
 | Infra | Docker Compose · Nginx reverse proxy · pg_dump/pg_restore для бэкапов |
 | Tests | pytest + httpx + factory-boy + testcontainers · vitest + @testing-library/react + MSW |
-| Agents | Claude Opus 4.7 (Claude Code) + Codex GPT 5.4 (Codex CLI) |
+| Agents | Claude Opus 4.7 (Claude Code) + Codex GPT 5.5 (Codex CLI) |
 
 ---
 
@@ -115,7 +115,7 @@ epicase/
 │   └── skills/                  — skills README (см. docs/INSTALL_SKILLS_GUIDE.md)
 │
 ├── .codex/                      ← конфигурация Codex CLI
-│   ├── config.toml              — model: gpt-5.4-codex
+│   ├── config.toml              — model: gpt-5.5-codex
 │   ├── agents/                  — 4 суб-агента (frontend-developer, ui-scaffolder, ...)
 │   └── skills/                  — skills README
 │
@@ -190,7 +190,7 @@ claude
 
 Выполняет: backend, архитектуру, безопасность, `graph_engine`, `grader_service`, `backup_service`, code review.
 
-### Codex GPT 5.4 (Codex CLI)
+### Codex GPT 5.5 (Codex CLI)
 
 ```bash
 # Из корня проекта

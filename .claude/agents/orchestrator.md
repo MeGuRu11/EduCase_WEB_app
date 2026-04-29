@@ -20,7 +20,7 @@ memory: project
    c. Run FULL suite → ALL green
 5. Route to correct agent:
    - Backend/architecture → Claude Opus
-   - Frontend/UI/tests → Codex GPT 5.4
+   - Frontend/UI/tests → Codex GPT 5.5
 
 ### End of session:
 6. Run FULL test suite one final time

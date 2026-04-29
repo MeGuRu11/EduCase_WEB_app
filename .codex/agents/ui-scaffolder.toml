@@ -1,6 +1,6 @@
 name = "ui-scaffolder"
 description = "Scaffolds React pages with tests — test file always included"
-model = "gpt-5.4-codex"
+model = "gpt-5.5-codex"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 

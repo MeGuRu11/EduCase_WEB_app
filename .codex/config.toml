@@ -1,6 +1,6 @@
 # EpiCase — Codex CLI Configuration
 
-model = "gpt-5.4"
+model = "gpt-5.5"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 

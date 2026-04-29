@@ -5,7 +5,7 @@
 >
 > **Два агента в проекте:**
 > - **Claude Opus 4.7** (Claude Code) — архитектура, backend, безопасность, сложная бизнес-логика, код-ревью
-> - **Codex GPT 5.4** (Codex CLI) — быстрая генерация UI, React-компоненты, тесты фронтенда, UI-scaffolding
+> - **Codex GPT 5.5** (Codex CLI) — быстрая генерация UI, React-компоненты, тесты фронтенда, UI-scaffolding
 >
 > **Суб-агенты Claude** (`.claude/agents/*.md`):
 > `orchestrator`, `backend-architect`, `code-reviewer`, `database-optimizer`, `security-engineer`
@@ -19,7 +19,7 @@
 
 ## Принцип распределения
 
-| Принадлежит Claude Opus 4.7 | Принадлежит Codex GPT 5.4 |
+| Принадлежит Claude Opus 4.7 | Принадлежит Codex GPT 5.5 |
 |---|---|
 | Проектирование схем БД, миграции Alembic | Реализация React-компонентов |
 | Pydantic-схемы request/response | TypeScript-типы, TanStack Query хуки |
@@ -253,7 +253,7 @@
 
 ## STAGE 5 — Клиент: Scaffolding + Auth (~2 дня)
 
-**Владелец всего этапа: Codex GPT 5.4** (frontend-developer + ui-scaffolder)
+**Владелец всего этапа: Codex GPT 5.5** (frontend-developer + ui-scaffolder)
 **Ревью перед коммитом: Claude (code-reviewer, security-engineer)**
 
 | Задача | Файл | Суб-агент |
@@ -284,7 +284,7 @@
 
 ## STAGE 6 — Клиент: Конструктор сценариев (~5 дней, самый сложный клиентский этап)
 
-**Владелец: Codex GPT 5.4** (frontend-developer) | **Ревью: Claude (архитектура + code-reviewer)**
+**Владелец: Codex GPT 5.5** (frontend-developer) | **Ревью: Claude (архитектура + code-reviewer)**
 
 | Задача | Файл | Сложность |
 |---|---|---|
@@ -315,7 +315,7 @@
 
 ## STAGE 7 — Клиент: Плеер кейса (~4 дня)
 
-**Владелец: Codex GPT 5.4** | **Ревью: Claude (UX + безопасность)**
+**Владелец: Codex GPT 5.5** | **Ревью: Claude (UX + безопасность)**
 
 | Задача | Файл |
 |---|---|
@@ -345,7 +345,7 @@
 
 ## STAGE 8 — Клиент: Дашборды и аналитика (~3 дня)
 
-**Владелец: Codex GPT 5.4**
+**Владелец: Codex GPT 5.5**
 
 | Задача | Файл |
 |---|---|
@@ -365,7 +365,7 @@
 
 ## STAGE 9 — Клиент: Админ-панель (~2 дня)
 
-**Владелец: Codex GPT 5.4** | **Ревью: Claude (security-engineer) — критично**
+**Владелец: Codex GPT 5.5** | **Ревью: Claude (security-engineer) — критично**
 
 | Задача | Файл |
 |---|---|
@@ -448,7 +448,7 @@
 - Обновление `MEMORY.md` после каждой сессии (вместе с кодом)
 - `docs/README.md` для деплоя
 
-### Codex GPT 5.4 (Codex CLI)
+### Codex GPT 5.5 (Codex CLI)
 
 **Frontend (весь):**
 - Vite + React + TS + Tailwind 4 setup
