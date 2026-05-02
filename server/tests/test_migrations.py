@@ -16,6 +16,8 @@ must NOT use the shared ``db_engine`` fixture.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from alembic import command
 from alembic.config import Config
@@ -24,9 +26,11 @@ from sqlalchemy import create_engine, inspect, text
 
 pytestmark = pytest.mark.slow
 
+SERVER_DIR = Path(__file__).resolve().parents[1]
+
 
 def _fresh_config(url: str) -> Config:
-    cfg = Config("server/alembic.ini")
+    cfg = Config(str(SERVER_DIR / "alembic.ini"))
     cfg.set_main_option("sqlalchemy.url", url)
     return cfg
 

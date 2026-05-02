@@ -274,7 +274,7 @@ def test_sysinfo_returns_version_and_uptime(
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["version"]
-    assert isinstance(body["uptime_hours"], (int, float))
+    assert isinstance(body["uptime_hours"], int | float)
     assert isinstance(body["maintenance_mode"], bool)
 
 

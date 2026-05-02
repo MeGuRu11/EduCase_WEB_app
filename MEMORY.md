@@ -1,10 +1,10 @@
 # EpiCase — Project Memory
 
 ## Last Updated
-- Date: 2026-04-28
-- Agent: Claude Opus 4.7
-- Stage: STAGE 4 closed — Analytics + Admin + Backup/Restore
-        (183 tests green: +13 analytics, +17 admin/backup; ruff clean)
+- Date: 2026-05-02
+- Agent: Codex GPT 5.5
+- Stage: STAGE 5 closed — Client scaffolding + Auth + UI kit + 404 handling
+        (183 backend tests green + 43 frontend tests green; ruff, tsc, vitest, verify clean)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**
@@ -66,7 +66,12 @@
       scheduler wired to real BackupService.create_backup (02:00 UTC) +
       AdminService.cleanup_old_logs (04:00 UTC, §T.4 retention policy),
       XLSX/PDF export (openpyxl + reportlab).
-- [ ] STAGE 5 — Client: Auth + UI kit + Layout (Codex GPT 5.5)
+- [x] STAGE 5 — Client: Auth + UI kit + Layout (Codex GPT 5.5) — 43 frontend
+      tests green; Vite/React 19/TS strict, vitest+MSW setup, Pydantic mirror TS
+      types without answer leaks, Axios JWT refresh/410 handlers, Zustand auth store,
+      ProtectedRoute 4-case logic, idle timeout hook, DESIGN_SYSTEM UI kit,
+      role-based AppLayout, auth pages, E-21 NotFound/Forbidden/ResourceNotFound/
+      useResourceQuery catch-all route. Full `scripts/verify.sh` green.
 - [ ] STAGE 6 — Client: Scenario Editor (Codex GPT 5.5)
 - [ ] STAGE 7 — Client: Case Player (Codex GPT 5.5)
 - [ ] STAGE 8 — Client: Dashboards (Codex GPT 5.5)
@@ -98,7 +103,13 @@
     §T.2 leak check/concurrent start/§B.3.4 partial-UNIQUE/403 for unassigned/
     +2 retro-audit regressions: teacher-attempt-access, duplicate-preserves-option_id)
   - test_edge_cases.py: 16 (4× EC-AUTH + 5× EC-SCENARIO + 7× EC-ATTEMPT-01..07)
-- Frontend: 0 tests / 0 passed  (Stage 5 target: ≥26)
+- Frontend: 43 tests / 43 passed
+  - ui.test.tsx: 23 (Icon, Button, Card, Badge, Input, Modal,
+    ConfirmDialog, EmptyState, LoadingSpinner, Skeleton, Table, Toast)
+  - auth-routing.test.tsx: 13 (LoginPage, ChangePasswordPage, ProtectedRoute
+    4 cases, AppLayout/Sidebar/TopBar, NotFoundPage, ForbiddenPage)
+  - api-resource.test.tsx: 7 (Axios auth/refresh/logout/410 handling,
+    ResourceNotFound, useResourceQuery 404/null and 500/error)
 
 ## Decisions (DO NOT CHANGE)
 - JSONB for node_data (§9) + GIN index `idx_nodes_data_gin` (ADDENDUM §Q)
@@ -125,13 +136,14 @@
 - Server-authoritative timer → fully specified (ADDENDUM §U.3)
 - Bulk CSV format undefined → UTF-8 BOM + `;` + 6 columns (ADDENDUM §T.6)
 - Lead model: Opus 4.6 → Opus 4.7 (2026-04-16 release)
+- Stage 5 verification blockers → resolved: Alembic test config path made
+  cwd-independent for `verify.sh`; pinned reportlab third-party deprecation
+  warning ignored under pytest strict warnings.
 
 ## Next Action
-→ start **Stage 5**: Client Auth + UI kit + Layout (Codex GPT 5.5 owns).
-  Scope per `docs/AGENT_TASKS.md`: React 19 + Tailwind 4 + Zustand 5 +
-  TanStack Query 5 scaffolding, login flow, ProtectedRoute, NotFoundPage /
-  ForbiddenPage / ResourceNotFound (E-21), AppLayout + sidebar, ≥30 vitest
-  tests.
+→ start **Stage 6**: Client Scenario Editor (Codex GPT 5.5 owns).
+  Scope per `docs/AGENT_TASKS.md`: React Flow editor, graph save debounce,
+  node/edge forms, validation feedback, autosave state, and tests.
 
 Deferred hardening status (2026-04-25):
 - ✅ Audit log table (mig 005 + AuditService)

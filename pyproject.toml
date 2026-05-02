@@ -22,6 +22,7 @@ filterwarnings = [
     # SQLAlchemy + Alembic + testcontainers noise we cannot control:
     "ignore::DeprecationWarning:passlib.*",
     "ignore::DeprecationWarning:jose.*",
+    "ignore::DeprecationWarning:reportlab.*",
     "ignore::DeprecationWarning:testcontainers.*",
     "ignore::PendingDeprecationWarning",
 ]

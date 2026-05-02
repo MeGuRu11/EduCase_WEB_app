@@ -7,6 +7,10 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/__tests__/setup.ts',
+  },
   server: {
     proxy: { '/api': 'http://localhost:8000' },
   },

@@ -19,12 +19,15 @@ from __future__ import annotations
 
 import os
 from collections.abc import Generator, Iterator
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
+
+SERVER_DIR = Path(__file__).resolve().parents[1]
 
 
 def _resolve_test_db_url() -> tuple[str, Iterator[None]]:
@@ -75,7 +78,7 @@ def db_engine(postgres_test_url: str) -> Generator[Engine, None, None]:
         conn.execute(text("DROP SCHEMA public CASCADE"))
         conn.execute(text("CREATE SCHEMA public"))
 
-    cfg = Config("server/alembic.ini")
+    cfg = Config(str(SERVER_DIR / "alembic.ini"))
     cfg.set_main_option("sqlalchemy.url", postgres_test_url)
     command.upgrade(cfg, "head")
 
