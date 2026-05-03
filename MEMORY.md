@@ -3,8 +3,8 @@
 ## Last Updated
 - Date: 2026-05-03
 - Agent: Codex GPT 5.5
-- Stage: STAGE 6 closed — Scenario Editor with 6 node types
-        (183 backend tests green + 64 frontend tests green; ruff, tsc, vitest, verify clean)
+- Stage: STAGE 7 closed — Case Player
+        (262 tests green: backend 183 + frontend 79; tsc clean, security grep clean)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**
@@ -78,7 +78,8 @@
       palette drag/drop, NodeInspector 6 modes, 30s autosave + beforeunload,
       MyScenarios list/actions, ScenarioEditorPage three-panel shell, and
       teacher-only preview insights without grep-triggering answer leaks.
-- [ ] STAGE 7 — Client: Case Player (Codex GPT 5.5)
+- [x] STAGE 7 — Client: Case Player (Codex GPT 5.5) — 79 frontend tests green, tsc clean
+      commit: 504c48c
 - [ ] STAGE 8 — Client: Dashboards (Codex GPT 5.5)
 - [ ] STAGE 9 — Client: Admin panel (Codex GPT 5.5)
 - [ ] STAGE 10 — Integration + deploy (Both)
