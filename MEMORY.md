@@ -3,8 +3,8 @@
 ## Last Updated
 - Date: 2026-05-03
 - Agent: Codex GPT 5.5
-- Stage: STAGE 6 closed — Scenario Editor with 6 node types
-        (183 backend tests green + 64 frontend tests green; ruff, tsc, vitest, verify clean)
+- Stage: STAGE 7 closed — Case Player
+        (183 backend tests green + 79 frontend tests green; ruff, tsc, vitest, verify clean)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**
@@ -78,7 +78,13 @@
       palette drag/drop, NodeInspector 6 modes, 30s autosave + beforeunload,
       MyScenarios list/actions, ScenarioEditorPage three-panel shell, and
       teacher-only preview insights without grep-triggering answer leaks.
-- [ ] STAGE 7 — Client: Case Player (Codex GPT 5.5)
+- [x] STAGE 7 — Client: Case Player (Codex GPT 5.5) — 79 frontend tests
+      green; attempts API + TanStack hooks, shared CasePlayer for student and
+      teacher preview, server-authoritative timer with 1s local countdown +
+      30s polling + auto-finish redirect, DOMPurify DataView policy restricted
+      to `/media/`, Decision/Form/TextInput feedback from server step responses,
+      react-hook-form + zod UX validation, readonly path visualization, result
+      page with score/status/steps/PDF print action, and 410 Gone redirect path.
 - [ ] STAGE 8 — Client: Dashboards (Codex GPT 5.5)
 - [ ] STAGE 9 — Client: Admin panel (Codex GPT 5.5)
 - [ ] STAGE 10 — Integration + deploy (Both)
@@ -108,7 +114,7 @@
     §T.2 leak check/concurrent start/§B.3.4 partial-UNIQUE/403 for unassigned/
     +2 retro-audit regressions: teacher-attempt-access, duplicate-preserves-option_id)
   - test_edge_cases.py: 16 (4× EC-AUTH + 5× EC-SCENARIO + 7× EC-ATTEMPT-01..07)
-- Frontend: 64 tests / 64 passed
+- Frontend: 79 tests / 79 passed
   - ui.test.tsx: 23 (Icon, Button, Card, Badge, Input, Modal,
     ConfirmDialog, EmptyState, LoadingSpinner, Skeleton, Table, Toast)
   - auth-routing.test.tsx: 13 (LoginPage, ChangePasswordPage, ProtectedRoute
@@ -118,6 +124,10 @@
   - scenario-editor.test.tsx: 21 (ScenarioCanvas add/connect/delete,
     NodePalette drag payload, NodeInspector 6 modes, ChoiceEdge states,
     autosave 30s debounce, beforeunload, MyScenarios, editor shell, preview)
+  - case-player.test.tsx: 15 (ServerTimer thresholds/polling/auto-finish,
+    DOMPurify DataView policy, DecisionView feedback flow, FormView zod
+    validation and field rendering, TextInput min length + matched keywords,
+    F5 resume, 410 Gone redirect, FinalView, CaseResultPage)
 
 ## Decisions (DO NOT CHANGE)
 - JSONB for node_data (§9) + GIN index `idx_nodes_data_gin` (ADDENDUM §Q)
@@ -152,9 +162,9 @@
   ScenarioFullOut sanitized and using computed teacher-only metadata keys.
 
 ## Next Action
-→ start **Stage 7**: Client Case Player (Codex GPT 5.5 owns).
-  Scope per `docs/AGENT_TASKS.md`: student case player, server timer polling,
-  step submit flows, final result page, and tests.
+→ start **Stage 8**: Client Dashboards (Codex GPT 5.5 owns).
+  Scope per `docs/AGENT_TASKS.md`: student dashboard, MyCases, MyResults,
+  teacher dashboard, analytics pages/charts, loading/empty/error states, tests.
 
 Deferred hardening status (2026-04-25):
 - ✅ Audit log table (mig 005 + AuditService)
