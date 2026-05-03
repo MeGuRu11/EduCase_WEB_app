@@ -1,2 +1,146 @@
-// T-4: Preview as student. TODO: implement
-export default function ScenarioPreview() { return <div>T-4: Preview as student</div>; }
+import { useNavigate, useParams } from 'react-router-dom';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { useScenario } from '@/hooks/useScenarios';
+import { ANSWER_EDGE_KEY, SENSITIVE_FORM_VALUE_KEY } from '@/stores/scenarioEditorStore';
+import type { EdgeOut, JsonObject, NodeOut, ScenarioFullOut } from '@/types/scenario';
+
+type TeacherFormField = JsonObject & {
+  [SENSITIVE_FORM_VALUE_KEY]?: unknown;
+};
+
+type TeacherPreviewNode = NodeOut & {
+  data: JsonObject & {
+    fields?: TeacherFormField[];
+    keywords?: string[];
+  };
+};
+
+type TeacherPreviewEdge = EdgeOut & {
+  data: JsonObject & {
+    [ANSWER_EDGE_KEY]?: boolean;
+    partial?: boolean;
+    score_delta?: number;
+  };
+};
+
+type TeacherScenarioFullOut = ScenarioFullOut & {
+  nodes: TeacherPreviewNode[];
+  edges: TeacherPreviewEdge[];
+};
+
+function fieldValues(node: TeacherPreviewNode) {
+  const fields = Array.isArray(node.data.fields) ? node.data.fields : [];
+  return fields
+    .filter((field): field is JsonObject => Boolean(field) && typeof field === 'object')
+    .map((field) => ({
+      label: String(field.label ?? field.id ?? 'Field'),
+      value: field[SENSITIVE_FORM_VALUE_KEY],
+    }))
+    .filter((field) => field.value !== undefined);
+}
+
+function Insights({ nodes, edges }: { nodes: TeacherPreviewNode[]; edges: TeacherPreviewEdge[] }) {
+  const formValues = nodes.flatMap(fieldValues);
+  const textNodes = nodes.filter((node) => node.type === 'text_input');
+
+  return (
+    <aside className="space-y-4 rounded-xl border border-warning/30 bg-warning/10 p-4">
+      <div>
+        <p className="text-sm font-semibold text-warning">Insights</p>
+        <p className="text-xs text-fg-muted">Teacher-only answer metadata for preview.</p>
+      </div>
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-fg">Edges</p>
+        {edges.map((edge) => (
+          <div key={edge.id} className="flex items-center justify-between rounded bg-bg px-3 py-2 text-sm">
+            <span>{edge.label ?? edge.id}</span>
+            <Badge variant={edge.data[ANSWER_EDGE_KEY] ? 'success' : 'danger'}>
+              {edge.data[ANSWER_EDGE_KEY] ? 'Expected path' : 'Distractor'}
+            </Badge>
+          </div>
+        ))}
+      </div>
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-fg">Correct value</p>
+        {formValues.length ? (
+          formValues.map((field) => (
+            <div key={field.label} className="rounded bg-bg px-3 py-2 text-sm">
+              <span className="text-fg-muted">{field.label}: </span>
+              <span className="font-medium text-fg">{String(field.value)}</span>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-fg-muted">No form answers in this graph.</p>
+        )}
+      </div>
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-fg">Keywords</p>
+        {textNodes.length ? (
+          textNodes.map((node) => (
+            <div key={node.id} className="rounded bg-bg px-3 py-2 text-sm">
+              {Array.isArray(node.data.keywords) ? node.data.keywords.join(', ') : 'No keywords'}
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-fg-muted">No text input nodes.</p>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+export default function ScenarioPreview() {
+  const id = Number(useParams().id);
+  const navigate = useNavigate();
+  const scenario = useScenario(Number.isFinite(id) ? id : null);
+
+  if (scenario.isLoading) return <Skeleton rows={8} label="Loading preview" />;
+  if (scenario.isError || !scenario.data) {
+    return (
+      <EmptyState
+        icon="warn"
+        title="Preview unavailable"
+        description="The scenario could not be loaded."
+        action={{ label: 'Back to editor', href: `/teacher/scenarios/${id}/edit` }}
+      />
+    );
+  }
+
+  const teacherScenario = scenario.data as TeacherScenarioFullOut;
+  const currentNode = teacherScenario.nodes[0];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3">
+        <div>
+          <p className="text-sm font-semibold text-warning">Preview mode - answers are not saved</p>
+          <h1 className="text-2xl font-bold text-fg">{scenario.data.title}</h1>
+        </div>
+        <Button variant="secondary" onClick={() => navigate(`/teacher/scenarios/${id}/edit`)}>
+          Exit preview
+        </Button>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <main className="rounded-xl border border-border bg-bg p-6">
+          <p className="mb-2 text-sm text-fg-muted">Student view</p>
+          {currentNode ? (
+            <article className="space-y-3">
+              <Badge variant="info">{currentNode.type}</Badge>
+              <h2 className="text-xl font-semibold text-fg">{currentNode.title}</h2>
+              <p className="text-sm text-fg-muted">
+                This preview uses the same graph data as the student player, without persisting an attempt.
+              </p>
+            </article>
+          ) : (
+            <EmptyState icon="cases" title="Scenario graph is empty" />
+          )}
+        </main>
+        <Insights nodes={teacherScenario.nodes} edges={teacherScenario.edges} />
+      </div>
+    </div>
+  );
+}

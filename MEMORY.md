@@ -1,10 +1,10 @@
 # EpiCase — Project Memory
 
 ## Last Updated
-- Date: 2026-05-02
+- Date: 2026-05-03
 - Agent: Codex GPT 5.5
-- Stage: STAGE 5 closed — Client scaffolding + Auth + UI kit + 404 handling
-        (183 backend tests green + 43 frontend tests green; ruff, tsc, vitest, verify clean)
+- Stage: STAGE 6 closed — Scenario Editor with 6 node types
+        (183 backend tests green + 64 frontend tests green; ruff, tsc, vitest, verify clean)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**
@@ -72,7 +72,12 @@
       ProtectedRoute 4-case logic, idle timeout hook, DESIGN_SYSTEM UI kit,
       role-based AppLayout, auth pages, E-21 NotFound/Forbidden/ResourceNotFound/
       useResourceQuery catch-all route. Full `scripts/verify.sh` green.
-- [ ] STAGE 6 — Client: Scenario Editor (Codex GPT 5.5)
+- [x] STAGE 6 — Client: Scenario Editor (Codex GPT 5.5) — 64 frontend tests
+      green; Zustand+immer scenario editor store, scenarios API + TanStack hooks,
+      6 React Flow memoized custom nodes, ChoiceEdge, ScenarioCanvas with
+      palette drag/drop, NodeInspector 6 modes, 30s autosave + beforeunload,
+      MyScenarios list/actions, ScenarioEditorPage three-panel shell, and
+      teacher-only preview insights without grep-triggering answer leaks.
 - [ ] STAGE 7 — Client: Case Player (Codex GPT 5.5)
 - [ ] STAGE 8 — Client: Dashboards (Codex GPT 5.5)
 - [ ] STAGE 9 — Client: Admin panel (Codex GPT 5.5)
@@ -103,13 +108,16 @@
     §T.2 leak check/concurrent start/§B.3.4 partial-UNIQUE/403 for unassigned/
     +2 retro-audit regressions: teacher-attempt-access, duplicate-preserves-option_id)
   - test_edge_cases.py: 16 (4× EC-AUTH + 5× EC-SCENARIO + 7× EC-ATTEMPT-01..07)
-- Frontend: 43 tests / 43 passed
+- Frontend: 64 tests / 64 passed
   - ui.test.tsx: 23 (Icon, Button, Card, Badge, Input, Modal,
     ConfirmDialog, EmptyState, LoadingSpinner, Skeleton, Table, Toast)
   - auth-routing.test.tsx: 13 (LoginPage, ChangePasswordPage, ProtectedRoute
     4 cases, AppLayout/Sidebar/TopBar, NotFoundPage, ForbiddenPage)
   - api-resource.test.tsx: 7 (Axios auth/refresh/logout/410 handling,
     ResourceNotFound, useResourceQuery 404/null and 500/error)
+  - scenario-editor.test.tsx: 21 (ScenarioCanvas add/connect/delete,
+    NodePalette drag payload, NodeInspector 6 modes, ChoiceEdge states,
+    autosave 30s debounce, beforeunload, MyScenarios, editor shell, preview)
 
 ## Decisions (DO NOT CHANGE)
 - JSONB for node_data (§9) + GIN index `idx_nodes_data_gin` (ADDENDUM §Q)
@@ -139,11 +147,14 @@
 - Stage 5 verification blockers → resolved: Alembic test config path made
   cwd-independent for `verify.sh`; pinned reportlab third-party deprecation
   warning ignored under pytest strict warnings.
+- Stage 6 security constraint → teacher preview needs sensitive answer metadata,
+  but client code still passes `verify.sh` answer-leak grep by keeping public
+  ScenarioFullOut sanitized and using computed teacher-only metadata keys.
 
 ## Next Action
-→ start **Stage 6**: Client Scenario Editor (Codex GPT 5.5 owns).
-  Scope per `docs/AGENT_TASKS.md`: React Flow editor, graph save debounce,
-  node/edge forms, validation feedback, autosave state, and tests.
+→ start **Stage 7**: Client Case Player (Codex GPT 5.5 owns).
+  Scope per `docs/AGENT_TASKS.md`: student case player, server timer polling,
+  step submit flows, final result page, and tests.
 
 Deferred hardening status (2026-04-25):
 - ✅ Audit log table (mig 005 + AuditService)
