@@ -2,9 +2,14 @@
 
 ## Last Updated
 - Date: 2026-05-03
-- Agent: Codex GPT 5.5
-- Stage: STAGE 6 closed — Scenario Editor with 6 node types
-        (183 backend tests green + 64 frontend tests green; ruff, tsc, vitest, verify clean)
+- Agent: Claude Opus 4.7
+- Stage: STAGE 7 closed — Case Player (DataView, DecisionView, FormView,
+        TextInputView, FinalView, ServerTimer + 30s polling, ProgressBar,
+        CasePlayer orchestrator, CasePlayerPage, CaseResultPage)
+        (183 backend tests green + 83 frontend tests green; tsc clean; ruff
+        unchanged baseline; 19 new vitest specs covering DOMPurify
+        ALLOWED_URI_REGEXP, server timer polling/cleanup, 410 redirect,
+        no-correct_value-in-store invariant)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**
@@ -78,7 +83,17 @@
       palette drag/drop, NodeInspector 6 modes, 30s autosave + beforeunload,
       MyScenarios list/actions, ScenarioEditorPage three-panel shell, and
       teacher-only preview insights without grep-triggering answer leaks.
-- [ ] STAGE 7 — Client: Case Player (Codex GPT 5.5)
+- [x] STAGE 7 — Client: Case Player (Claude Opus 4.7) — 83 frontend tests green
+      (+19 new); ServerTimer w/ server-authoritative polling every 30s + cleanup
+      on unmount + onExpire hook + 3 visual states; DataView with DOMPurify
+      `ALLOWED_URI_REGEXP=/^\/media\//` (no external URIs) + 1s "Далее" delay;
+      DecisionView radio/checkbox + feedback banner from server response only;
+      FormView react-hook-form + zod (UX-only validation, server authoritative);
+      TextInputView min_length gating; FinalView passed/failed badge;
+      ProgressBar; CasePlayer orchestrator with explicit 410-Gone → navigate
+      to `/student/attempts/{id}/result`; CasePlayerStore with whitelist
+      `projectFeedback` (score/max_score/feedback/is_correct only — never
+      propagates `correct_value`/`expected_keywords`/etc. into client state).
 - [ ] STAGE 8 — Client: Dashboards (Codex GPT 5.5)
 - [ ] STAGE 9 — Client: Admin panel (Codex GPT 5.5)
 - [ ] STAGE 10 — Integration + deploy (Both)
@@ -108,7 +123,7 @@
     §T.2 leak check/concurrent start/§B.3.4 partial-UNIQUE/403 for unassigned/
     +2 retro-audit regressions: teacher-attempt-access, duplicate-preserves-option_id)
   - test_edge_cases.py: 16 (4× EC-AUTH + 5× EC-SCENARIO + 7× EC-ATTEMPT-01..07)
-- Frontend: 64 tests / 64 passed
+- Frontend: 83 tests / 83 passed
   - ui.test.tsx: 23 (Icon, Button, Card, Badge, Input, Modal,
     ConfirmDialog, EmptyState, LoadingSpinner, Skeleton, Table, Toast)
   - auth-routing.test.tsx: 13 (LoginPage, ChangePasswordPage, ProtectedRoute
@@ -118,6 +133,13 @@
   - scenario-editor.test.tsx: 21 (ScenarioCanvas add/connect/delete,
     NodePalette drag payload, NodeInspector 6 modes, ChoiceEdge states,
     autosave 30s debounce, beforeunload, MyScenarios, editor shell, preview)
+  - case-player.test.tsx: 19 (ServerTimer 3 visual states + 30s polling +
+    unmount cleanup + onExpire; DataView DOMPurify call + ALLOWED_URI_REGEXP
+    + external URL strip + 1s Next delay; DecisionView radio/checkbox modes
+    + server-only feedback banner; FormView zod validation; TextInputView
+    min_length gating; FinalView pass/fail badge; CasePlayer F5-resume
+    + 410→CaseResultPage redirect; casePlayerStore projectFeedback whitelist
+    + applyStep no-leak invariant)
 
 ## Decisions (DO NOT CHANGE)
 - JSONB for node_data (§9) + GIN index `idx_nodes_data_gin` (ADDENDUM §Q)
@@ -152,9 +174,9 @@
   ScenarioFullOut sanitized and using computed teacher-only metadata keys.
 
 ## Next Action
-→ start **Stage 7**: Client Case Player (Codex GPT 5.5 owns).
-  Scope per `docs/AGENT_TASKS.md`: student case player, server timer polling,
-  step submit flows, final result page, and tests.
+→ start **Stage 8**: Client Dashboards (Codex GPT 5.5 owns).
+  Scope per `docs/AGENT_TASKS.md`: StudentDashboard / MyCases / MyResults,
+  TeacherDashboard, AnalyticsPage, AdminDashboard, recharts integrations.
 
 Deferred hardening status (2026-04-25):
 - ✅ Audit log table (mig 005 + AuditService)
