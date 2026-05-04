@@ -9,17 +9,13 @@ import type {
   TimeRemaining,
 } from '@/types/attempt';
 
-export interface MyAttemptsParams {
-  scenarioId?: number | null;
-}
-
 export const attemptsApi = {
   async start(payload: AttemptStart) {
     const response = await api.post<AttemptStartOut>('/attempts/start', payload);
     return response.data;
   },
 
-  async submitStep(attemptId: number, payload: StepSubmit) {
+  async step(attemptId: number, payload: StepSubmit) {
     const response = await api.post<StepOut>(`/attempts/${attemptId}/step`, payload);
     return response.data;
   },
@@ -34,20 +30,20 @@ export const attemptsApi = {
     return response.data;
   },
 
-  async listMine(params: MyAttemptsParams = {}) {
+  async timeRemaining(attemptId: number) {
+    const response = await api.get<TimeRemaining>(`/attempts/${attemptId}/time-remaining`);
+    return response.data;
+  },
+
+  async listMy(scenarioId?: number) {
     const response = await api.get<AttemptSummaryOut[]>('/attempts/my', {
-      params: params.scenarioId ? { scenario_id: params.scenarioId } : undefined,
+      params: scenarioId ? { scenario_id: scenarioId } : undefined,
     });
     return response.data;
   },
 
-  async get(attemptId: number) {
+  async detail(attemptId: number) {
     const response = await api.get<AttemptResultOut>(`/attempts/${attemptId}`);
-    return response.data;
-  },
-
-  async timeRemaining(attemptId: number) {
-    const response = await api.get<TimeRemaining>(`/attempts/${attemptId}/time-remaining`);
     return response.data;
   },
 };

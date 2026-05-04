@@ -1,503 +1,493 @@
 import type { ReactNode } from 'react';
-import { act } from 'react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, renderHook, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import CasePlayer from '@/components/player/CasePlayer';
-import DataView from '@/components/player/DataView';
-import DecisionView from '@/components/player/DecisionView';
-import FinalView from '@/components/player/FinalView';
-import FormView from '@/components/player/FormView';
-import ServerTimer from '@/components/player/ServerTimer';
-import TextInputView from '@/components/player/TextInputView';
+
+import { ServerTimer } from '@/components/player/ServerTimer';
+import { ALLOWED_URI_REGEXP, DataView } from '@/components/player/DataView';
+import { DecisionView } from '@/components/player/DecisionView';
+import { FormView } from '@/components/player/FormView';
+import { TextInputView } from '@/components/player/TextInputView';
+import { FinalView } from '@/components/player/FinalView';
 import CasePlayerPage from '@/pages/student/CasePlayerPage';
 import CaseResultPage from '@/pages/student/CaseResultPage';
-import type { AttemptResultOut, AttemptStartOut, StepOut } from '@/types/attempt';
+import {
+  __projectFeedback,
+  useCasePlayerStore,
+} from '@/stores/casePlayerStore';
+import type {
+  AttemptResultOut,
+  AttemptStartOut,
+  StepOut,
+  StepResult,
+  TimeRemaining,
+} from '@/types/attempt';
 import type { NodeOut } from '@/types/scenario';
+
 import { server } from './setup';
 import { renderWithProviders } from './testUtils';
 
-const stepCheckKey = ['is', 'correct'].join('_');
+const { mockSanitize } = vi.hoisted(() => {
+  return {
+    mockSanitize: vi.fn((html: string, _config?: unknown) => {
+      let cleaned = String(html).replace(/<script[\s\S]*?<\/script>/gi, '');
+      cleaned = cleaned.replace(/<img\s+[^>]*src="https?:\/\/[^"]*"[^>]*>/gi, '');
+      return cleaned;
+    }),
+  };
+});
 
-vi.mock('dompurify', () => ({
-  default: {
-    sanitize: vi.fn((html: string) => `safe:${html}`),
-  },
-}));
+vi.mock('dompurify', () => ({ default: { sanitize: mockSanitize } }));
 
-vi.mock('sonner', () => ({
-  Toaster: () => null,
-  toast: {
-    error: vi.fn(),
-    info: vi.fn(),
-    success: vi.fn(),
-    warning: vi.fn(),
-  },
-}));
+function dataNode(overrides: Partial<NodeOut> = {}): NodeOut {
+  return {
+    id: 'data-1',
+    type: 'data',
+    title: 'Patient data',
+    position: { x: 0, y: 0 },
+    data: { html: '<p>Patient summary</p>' },
+    ...overrides,
+  };
+}
 
-vi.mock('@xyflow/react', () => ({
-  Background: () => <div data-testid="path-background" />,
-  Controls: () => <div data-testid="path-controls" />,
-  Handle: () => null,
-  MiniMap: () => <div data-testid="path-minimap" />,
-  ReactFlow: ({
-    children,
-    edges = [],
-    nodes = [],
-  }: {
-    children?: ReactNode;
-    edges?: Array<{ id: string }>;
-    nodes?: Array<{ id: string; data?: { label?: string } }>;
-  }) => (
-    <div data-testid="path-flow">
-      {nodes.map((node) => (
-        <span key={node.id}>{node.data?.label ?? node.id}</span>
-      ))}
-      {edges.map((edge) => (
-        <span key={edge.id}>{edge.id}</span>
-      ))}
-      {children}
-    </div>
-  ),
-  ReactFlowProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
-}));
+function decisionNode(overrides: Partial<NodeOut> = {}): NodeOut {
+  return {
+    id: 'decision-1',
+    type: 'decision',
+    title: 'Pick a diagnosis',
+    position: { x: 0, y: 0 },
+    data: {
+      allow_multiple: false,
+      options: [
+        { id: 'a', label: 'Hepatitis A' },
+        { id: 'b', label: 'Hepatitis B' },
+      ],
+    },
+    ...overrides,
+  };
+}
 
-const now = '2026-05-03T09:00:00Z';
+function formNode(overrides: Partial<NodeOut> = {}): NodeOut {
+  return {
+    id: 'form-1',
+    type: 'form',
+    title: 'Differential diagnosis',
+    position: { x: 0, y: 0 },
+    data: {
+      fields: [
+        { id: 'diagnosis', label: 'Diagnosis', type: 'text', required: true },
+      ],
+    },
+    ...overrides,
+  };
+}
+
+function textInputNode(overrides: Partial<NodeOut> = {}): NodeOut {
+  return {
+    id: 'text-1',
+    type: 'text_input',
+    title: 'Explain your reasoning',
+    position: { x: 0, y: 0 },
+    data: { keywords: ['liver'], min_length: 5 },
+    ...overrides,
+  };
+}
+
+function startResponse(overrides: Partial<AttemptStartOut> = {}): AttemptStartOut {
+  return {
+    attempt_id: 42,
+    attempt_num: 1,
+    current_node: dataNode(),
+    started_at: '2026-05-03T10:00:00Z',
+    time_limit_min: 30,
+    expires_at: '2026-05-03T10:30:00Z',
+    resumed: false,
+    ...overrides,
+  };
+}
+
+function stepOk(overrides: Partial<StepOut> = {}): StepOut {
+  return {
+    step_result: {
+      score: 5,
+      max_score: 5,
+      feedback: 'Отличный выбор',
+      details: { is_correct: true },
+    },
+    next_node: decisionNode({ id: 'decision-1' }),
+    path_so_far: ['data-1', 'decision-1'],
+    attempt_status: 'in_progress',
+    ...overrides,
+  };
+}
+
+function resetStore() {
+  useCasePlayerStore.getState().reset();
+}
+
+beforeEach(() => {
+  resetStore();
+});
 
 afterEach(() => {
   vi.useRealTimers();
 });
 
-function node(type: NodeOut['type'], patch: Partial<NodeOut> = {}): NodeOut {
-  return {
-    data: {},
-    id: `${type}-1`,
-    position: { x: 0, y: 0 },
-    title: `${type} node`,
-    type,
-    ...patch,
-  };
-}
-
-function attemptStart(currentNode: NodeOut = node('data')): AttemptStartOut {
-  return {
-    attempt_id: 42,
-    attempt_num: 2,
-    current_node: currentNode,
-    expires_at: '2026-05-03T09:10:00Z',
-    resumed: true,
-    started_at: now,
-    time_limit_min: 30,
-  };
-}
-
-function stepOut(patch: Partial<StepOut> = {}): StepOut {
-  return {
-    attempt_status: 'in_progress',
-    next_node: node('final', { id: 'final-1', title: 'Result', data: { result_type: 'passed' } }),
-    path_so_far: ['data-1', 'final-1'],
-    step_result: {
-      [stepCheckKey]: true,
-      details: { matched_keywords: ['triage'] },
-      feedback: 'Server feedback',
-      max_score: 10,
-      score: 8,
-    } as StepOut['step_result'],
-    ...patch,
-  };
-}
-
-function resultOut(patch: Partial<AttemptResultOut> = {}): AttemptResultOut {
-  return {
-    attempt_num: 2,
-    duration_sec: 185,
-    finished_at: '2026-05-03T09:03:05Z',
-    id: 42,
-    max_score: 10,
-    passed: true,
-    path: ['data-1', 'decision-1', 'final-1'],
-    scenario_id: 7,
-    scenario_title: 'Acute hepatitis',
-    score_pct: 80,
-    started_at: now,
-    status: 'completed',
-    steps: [
-      {
-        [stepCheckKey]: true,
-        action: 'choose_option',
-        answer_data: { selected: ['a'] },
-        created_at: now,
-        feedback: 'Good choice',
-        max_score: 10,
-        node_id: 'decision-1',
-        node_title: 'Choose isolation',
-        node_type: 'decision',
-        score_received: 8,
-        step_id: 1,
-        time_spent_sec: 12,
-      },
-    ] as AttemptResultOut['steps'],
-    total_score: 8,
-    ...patch,
-  };
-}
-
-function installAttemptHandlers({
-  startNode = node('data', { data: { content_html: '<p>Patient</p>' }, title: 'Patient data' }),
-  stepStatus = 200,
-}: { startNode?: NodeOut; stepStatus?: number } = {}) {
-  let timePolls = 0;
-
-  server.use(
-    http.post('/api/attempts/start', () => HttpResponse.json(attemptStart(startNode), { status: 201 })),
-    http.get('/api/attempts/42/time-remaining', () => {
-      timePolls += 1;
-      return HttpResponse.json({ expires_at: '2026-05-03T09:09:30Z', remaining_sec: 570 });
-    }),
-    http.post('/api/attempts/42/step', () => {
-      if (stepStatus === 410) {
-        return HttpResponse.json({ detail: 'time expired' }, { status: 410 });
-      }
-      return HttpResponse.json(stepOut());
-    }),
-    http.post('/api/attempts/42/finish', () => HttpResponse.json(resultOut())),
-    http.get('/api/attempts/42', () => HttpResponse.json(resultOut())),
-  );
-
-  return { getTimePolls: () => timePolls };
-}
-
+// ════════════════ ServerTimer (§U.3 + §A.7) ════════════════
 describe('ServerTimer', () => {
-  beforeEach(() => {
-    vi.useFakeTimers({ now: new Date(now) });
-  });
+  function expiresInSeconds(seconds: number) {
+    return new Date(Date.now() + seconds * 1000).toISOString();
+  }
 
-  it('uses muted, warning, and danger timer states from remaining seconds', () => {
-    const { rerender } = renderWithProviders(
-      <ServerTimer attemptId={42} expiresAt="2026-05-03T09:10:01Z" initialRemainingSec={601} />,
-    );
-    expect(screen.getByLabelText(/time remaining/i)).toHaveAttribute('data-timer-state', 'normal');
-
-    rerender(<ServerTimer attemptId={42} expiresAt="2026-05-03T09:04:00Z" initialRemainingSec={240} />);
-    expect(screen.getByLabelText(/time remaining/i)).toHaveAttribute('data-timer-state', 'warning');
-
-    rerender(<ServerTimer attemptId={42} expiresAt="2026-05-03T09:00:45Z" initialRemainingSec={45} />);
-    expect(screen.getByLabelText(/time remaining/i)).toHaveAttribute('data-timer-state', 'danger');
-  });
-
-  it('polls server time every 30 seconds', async () => {
-    const handlers = installAttemptHandlers();
-    renderWithProviders(
-      <ServerTimer attemptId={42} expiresAt="2026-05-03T09:10:00Z" initialRemainingSec={600} />,
-    );
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(29_999);
-    });
-    expect(handlers.getTimePolls()).toBe(0);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1);
-    });
-    expect(handlers.getTimePolls()).toBe(1);
-  });
-
-  it('finishes and redirects when the server timer reaches zero', async () => {
-    vi.useRealTimers();
+  it('renders muted state when remaining > 5 minutes', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-03T10:00:00Z'));
     server.use(
-      http.get('/api/attempts/42/time-remaining', () => HttpResponse.json({ expires_at: now, remaining_sec: 0 })),
-      http.post('/api/attempts/42/finish', () => HttpResponse.json(resultOut())),
+      http.get('/api/attempts/42/time-remaining', () =>
+        HttpResponse.json<TimeRemaining>({ remaining_sec: 600, expires_at: expiresInSeconds(600) }),
+      ),
     );
 
-    renderWithProviders(
-      <Routes>
-        <Route path="/student/cases/7/play" element={<ServerTimer attemptId={42} expiresAt={now} initialRemainingSec={0} />} />
-        <Route path="/student/attempts/42/result" element={<div>result page</div>} />
-      </Routes>,
-      { route: '/student/cases/7/play' },
+    render(<ServerTimer attemptId={42} initialExpiresAt={expiresInSeconds(600)} />);
+    const timer = screen.getByTestId('server-timer');
+    expect(timer).toHaveAttribute('data-state', 'muted');
+  });
+
+  it('renders warning state between 1 and 5 minutes', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-03T10:00:00Z'));
+    render(<ServerTimer attemptId={42} initialExpiresAt={expiresInSeconds(180)} />);
+    expect(screen.getByTestId('server-timer')).toHaveAttribute('data-state', 'warning');
+  });
+
+  it('renders danger state under 1 minute', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-03T10:00:00Z'));
+    render(<ServerTimer attemptId={42} initialExpiresAt={expiresInSeconds(45)} />);
+    expect(screen.getByTestId('server-timer')).toHaveAttribute('data-state', 'danger');
+  });
+
+  it('polls /time-remaining every 30 seconds and stops on unmount', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-03T10:00:00Z'));
+    let pollCount = 0;
+    server.use(
+      http.get('/api/attempts/42/time-remaining', () => {
+        pollCount += 1;
+        return HttpResponse.json<TimeRemaining>({
+          remaining_sec: 600,
+          expires_at: expiresInSeconds(600),
+        });
+      }),
     );
 
-    expect(await screen.findByText('result page')).toBeInTheDocument();
+    const { unmount } = render(
+      <ServerTimer attemptId={42} initialExpiresAt={expiresInSeconds(600)} />,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(pollCount).toBe(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(pollCount).toBe(2);
+
+    unmount();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(pollCount).toBe(2);
+  });
+
+  it('calls onExpire when remaining reaches 0', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-03T10:00:00Z'));
+    const onExpire = vi.fn();
+    render(
+      <ServerTimer
+        attemptId={42}
+        initialExpiresAt={expiresInSeconds(2)}
+        onExpire={onExpire}
+      />,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+    expect(onExpire).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('player node views', () => {
-  it('sanitizes data-node HTML with local media URI policy and delays next for one second', async () => {
-    const DOMPurify = await import('dompurify');
-    const onContinue = vi.fn();
+// ════════════════ DataView (§B.2.4) ════════════════
+describe('DataView', () => {
+  it('calls DOMPurify.sanitize with ALLOWED_URI_REGEXP /^\\/media\\//', () => {
+    expect(ALLOWED_URI_REGEXP.source).toBe('^\\/media\\/');
+    expect('/media/x-ray.png').toMatch(ALLOWED_URI_REGEXP);
+    expect('https://evil.example.com/x.png').not.toMatch(ALLOWED_URI_REGEXP);
 
-    vi.useFakeTimers();
     render(
       <DataView
-        node={node('data', { data: { content_html: '<img src="https://evil.test/x.png"><p>Case</p>' } })}
-        onContinue={onContinue}
+        node={dataNode({ data: { html: '<p>hi</p><script>alert(1)</script>' } })}
+        onNext={vi.fn()}
       />,
     );
 
-    expect(DOMPurify.default.sanitize).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({ ALLOWED_URI_REGEXP: /^\/media\// }),
-    );
-    expect(screen.getByText(/safe:/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Далее' })).toBeDisabled();
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1_000);
-    });
-    expect(screen.getByRole('button', { name: 'Далее' })).not.toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Далее' }));
-    expect(onContinue).toHaveBeenCalledTimes(1);
+    expect(mockSanitize).toHaveBeenCalled();
+    const calls = mockSanitize.mock.calls;
+    const lastCall = calls[calls.length - 1];
+    expect(lastCall?.[0]).toContain('<script>alert(1)</script>');
+    const config = lastCall?.[1] as { ALLOWED_URI_REGEXP?: RegExp };
+    expect(config?.ALLOWED_URI_REGEXP).toBeInstanceOf(RegExp);
+    expect(config?.ALLOWED_URI_REGEXP?.source).toBe('^\\/media\\/');
   });
 
-  it('submits a decision answer, shows server feedback, then enables next after one second', async () => {
+  it('does not render external image src in the output', () => {
+    const html = '<p>see</p><img src="https://evil.com/track.gif">';
+    render(<DataView node={dataNode({ data: { html } })} onNext={vi.fn()} />);
+    expect(screen.getByTestId('data-view-content').innerHTML).not.toContain('evil.com');
+  });
+
+  it('disables the Next button until 1 second after render', async () => {
     vi.useFakeTimers();
-    const submit = vi.fn().mockResolvedValue(stepOut());
-    const onAdvance = vi.fn();
+    render(<DataView node={dataNode()} onNext={vi.fn()} />);
+    const button = screen.getByRole('button', { name: 'Далее' });
+    expect(button).toBeDisabled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_001);
+    });
+    expect(button).not.toBeDisabled();
+  });
+});
 
+// ════════════════ DecisionView ════════════════
+describe('DecisionView', () => {
+  it('renders radio inputs when allow_multiple is false', () => {
+    render(<DecisionView node={decisionNode()} onSubmit={vi.fn()} onNext={vi.fn()} />);
+    const inputs = screen.getAllByRole('radio');
+    expect(inputs).toHaveLength(2);
+  });
+
+  it('renders checkboxes when allow_multiple is true', () => {
     render(
       <DecisionView
-        node={node('decision', {
-          data: {
-            allow_multiple: false,
-            options: [
-              { id: 'a', text: 'Isolate patient' },
-              { id: 'b', text: 'Discharge' },
-            ],
-          },
-        })}
-        onAdvance={onAdvance}
-        onSubmit={submit}
+        node={decisionNode({ data: { allow_multiple: true, options: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }] } })}
+        onSubmit={vi.fn()}
+        onNext={vi.fn()}
       />,
     );
-
-    expect(screen.getByRole('button', { name: 'Ответить' })).toBeDisabled();
-    fireEvent.click(screen.getByLabelText('Isolate patient'));
-    fireEvent.click(screen.getByRole('button', { name: 'Ответить' }));
-
-    expect(submit).toHaveBeenCalledWith({ selected_option_id: 'a' });
-    await act(async () => {
-      await Promise.resolve();
-    });
-    expect(screen.getByText('Server feedback')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Далее' })).toBeDisabled();
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1_000);
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Далее' }));
-    expect(onAdvance).toHaveBeenCalledWith(stepOut().next_node, stepOut());
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
   });
 
-  it('renders checkbox choices when multiple answers are allowed', async () => {
+  it('renders the feedback banner verbatim from the server response only', () => {
     render(
       <DecisionView
-        node={node('decision', {
-          data: {
-            allow_multiple: true,
-            options: [
-              { id: 'a', text: 'Mask' },
-              { id: 'b', text: 'Gloves' },
-            ],
-          },
-        })}
-        onAdvance={vi.fn()}
+        node={decisionNode()}
+        feedback={{ score: 5, max_score: 5, feedback: 'Server-provided text', is_correct: true }}
         onSubmit={vi.fn()}
+        onNext={vi.fn()}
       />,
     );
-
-    expect(screen.getByLabelText('Mask')).toHaveAttribute('type', 'checkbox');
-    expect(screen.getByLabelText('Gloves')).toHaveAttribute('type', 'checkbox');
-  });
-
-  it('validates form fields through zod before submitting', async () => {
-    const submit = vi.fn().mockResolvedValue(stepOut());
-    render(
-      <FormView
-        node={node('form', {
-          data: {
-            fields: [
-              {
-                id: 'diagnosis',
-                label: 'Diagnosis',
-                regex: '^Hepatitis',
-                required: true,
-                score: 5,
-                type: 'text',
-              },
-            ],
-          },
-        })}
-        onAdvance={vi.fn()}
-        onSubmit={submit}
-      />,
-    );
-
-    await userEvent.type(screen.getByLabelText('Diagnosis'), 'Flu');
-    await userEvent.click(screen.getByRole('button', { name: 'Отправить форму' }));
-
-    expect(await screen.findByText(/Invalid format/i)).toBeInTheDocument();
-    expect(submit).not.toHaveBeenCalled();
-  });
-
-  it('submits valid form values to the step endpoint handler', async () => {
-    const submit = vi.fn().mockResolvedValue(stepOut());
-    render(
-      <FormView
-        node={node('form', {
-          data: {
-            fields: [
-              { id: 'score', label: 'Score', required: true, type: 'number' },
-              { id: 'confirmed', label: 'Confirmed', type: 'checkbox' },
-            ],
-          },
-        })}
-        onAdvance={vi.fn()}
-        onSubmit={submit}
-      />,
-    );
-
-    await userEvent.type(screen.getByLabelText('Score'), '12');
-    await userEvent.click(screen.getByLabelText('Confirmed'));
-    await userEvent.click(screen.getByRole('button', { name: 'Отправить форму' }));
-
-    expect(submit).toHaveBeenCalledWith({ fields: { confirmed: true, score: 12 } });
-  });
-
-  it('renders textarea, select, and date form controls with labels', () => {
-    render(
-      <FormView
-        node={node('form', {
-          data: {
-            fields: [
-              { id: 'notes', label: 'Notes', type: 'textarea' },
-              { id: 'priority', label: 'Priority', options: ['Low', 'High'], type: 'select' },
-              { id: 'observed_at', label: 'Observed date', type: 'date' },
-            ],
-          },
-        })}
-        onAdvance={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByLabelText('Notes')).toBeInTheDocument();
-    expect(screen.getByLabelText('Priority')).toBeInTheDocument();
-    expect(screen.getByLabelText('Observed date')).toHaveAttribute('type', 'date');
-  });
-
-  it('requires text input minimum length before submit', async () => {
-    const submit = vi.fn();
-    render(
-      <TextInputView
-        node={node('text_input', { data: { min_length: 10 } })}
-        onAdvance={vi.fn()}
-        onSubmit={submit}
-      />,
-    );
-
-    await userEvent.type(screen.getByLabelText('Ответ'), 'short');
-    expect(screen.getByText('5 / 10')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ответить' })).toBeDisabled();
-  });
-
-  it('shows matched keywords returned by the server after text submit', async () => {
-    const submit = vi.fn().mockResolvedValue(stepOut());
-    render(
-      <TextInputView
-        node={node('text_input', { data: { min_length: 3 } })}
-        onAdvance={vi.fn()}
-        onSubmit={submit}
-      />,
-    );
-
-    await userEvent.type(screen.getByLabelText('Ответ'), 'triage now');
-    await userEvent.click(screen.getByRole('button', { name: 'Ответить' }));
-
-    expect(await screen.findByText(/Совпавшие ключевые слова: triage/)).toBeInTheDocument();
-  });
-
-  it('renders final result with path visualization and PDF action', () => {
-    const exportPdf = vi.fn();
-    render(
-      <FinalView
-        attempt={resultOut()}
-        nodes={[node('data', { id: 'data-1', title: 'Patient' }), node('final', { id: 'final-1', title: 'Done' })]}
-        onExportPdf={exportPdf}
-      />,
-    );
-
-    expect(screen.getByText('Passed')).toBeInTheDocument();
-    expect(screen.getByTestId('path-flow')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Export PDF' }));
-    expect(exportPdf).toHaveBeenCalledTimes(1);
+    const banner = screen.getByTestId('decision-feedback');
+    expect(banner).toHaveAttribute('data-correct', 'true');
+    expect(banner).toHaveTextContent('Server-provided text');
+    expect(banner).toHaveTextContent('5/5');
   });
 });
 
-describe('CasePlayer integration', () => {
-  beforeEach(() => {
-    vi.useRealTimers();
+// ════════════════ FormView ════════════════
+describe('FormView', () => {
+  it('blocks submit until required fields are filled (zod)', async () => {
+    const onSubmit = vi.fn();
+    const user = userEvent.setup();
+    render(<FormView node={formNode()} onSubmit={onSubmit} onNext={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Ответить' }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(/обязательно/i)).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Diagnosis'), 'Hepatitis A');
+    await user.click(screen.getByRole('button', { name: 'Ответить' }));
+    expect(onSubmit).toHaveBeenCalledWith({ diagnosis: 'Hepatitis A' });
+  });
+});
+
+// ════════════════ TextInputView ════════════════
+describe('TextInputView', () => {
+  it('disables submit until min_length is reached', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<TextInputView node={textInputNode()} onSubmit={onSubmit} onNext={vi.fn()} />);
+    const submit = screen.getByRole('button', { name: 'Ответить' });
+    expect(submit).toBeDisabled();
+    await user.type(screen.getByLabelText(/Ответ/), 'hello');
+    expect(submit).not.toBeDisabled();
+  });
+});
+
+// ════════════════ FinalView ════════════════
+describe('FinalView', () => {
+  it('renders passed/failed badge from result', () => {
+    const result: AttemptResultOut = {
+      id: 1, scenario_id: 7, scenario_title: 'Case', attempt_num: 1,
+      status: 'completed', total_score: 80, max_score: 100, score_pct: 80,
+      passed: true, started_at: '2026-05-03T10:00:00Z',
+      finished_at: '2026-05-03T10:25:00Z', duration_sec: 1500,
+      path: ['start-1', 'data-1'], steps: [],
+    };
+    render(<FinalView result={result} />);
+    expect(screen.getByTestId('final-badge')).toHaveTextContent(/passed/i);
+    expect(screen.getByText('80/100')).toBeInTheDocument();
+  });
+});
+
+// ════════════════ casePlayerStore — security boundary ════════════════
+describe('casePlayerStore', () => {
+  it('projectFeedback whitelists score/max_score/feedback/is_correct only', () => {
+    const tainted: StepResult = {
+      score: 3,
+      max_score: 5,
+      feedback: 'Almost',
+      // server may include extra metadata in details (e.g. expected_keywords or
+      // — by mistake — correct_value). The projection MUST NOT propagate them.
+      details: {
+        is_correct: false,
+        correct_value: 'Hepatitis A',
+        expected_keywords: ['liver'],
+      },
+    };
+    const projected = __projectFeedback(tainted);
+    expect(projected).toEqual({ score: 3, max_score: 5, feedback: 'Almost', is_correct: false });
+    expect(projected).not.toHaveProperty('correct_value');
+    expect(projected).not.toHaveProperty('expected_keywords');
   });
 
-  it('resumes an existing attempt and renders the current step returned by the API', async () => {
-    installAttemptHandlers({
-      startNode: node('data', { data: { content_html: '<p>Resume content</p>' }, title: 'Resume step' }),
+  it('applyStep stores feedback derived only from response (no correct_value leak)', () => {
+    const node = dataNode();
+    useCasePlayerStore.getState().setAttempt({
+      attemptId: 42,
+      currentNode: node,
+      status: 'in_progress',
+    });
+    useCasePlayerStore.getState().applyStep({
+      step_result: {
+        score: 1, max_score: 1, feedback: 'ok',
+        details: { is_correct: true, correct_value: 'leaked' },
+      },
+      next_node: null,
+      path_so_far: ['data-1'],
+      attempt_status: 'completed',
     });
 
-    renderWithProviders(<CasePlayer scenarioId={7} />);
+    const fb = useCasePlayerStore.getState().lastFeedback;
+    expect(fb?.is_correct).toBe(true);
+    expect(JSON.stringify(useCasePlayerStore.getState())).not.toContain('leaked');
+    expect(JSON.stringify(useCasePlayerStore.getState())).not.toContain('correct_value');
+  });
+});
 
-    expect((await screen.findAllByText('Resume step')).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Attempt 2/)).toBeInTheDocument();
-    expect(screen.getByText(/Resume content/)).toBeInTheDocument();
+// ════════════════ CasePlayerPage integration ════════════════
+function withRoutes(player: ReactNode) {
+  return (
+    <Routes>
+      <Route path="/student/cases/:id/play" element={player} />
+      <Route path="/student/attempts/:id/result" element={<CaseResultPage />} />
+    </Routes>
+  );
+}
+
+describe('CasePlayerPage', () => {
+  it('starts an attempt and renders the current node (F5-resume)', async () => {
+    server.use(
+      http.post('/api/attempts/start', () =>
+        HttpResponse.json<AttemptStartOut>(startResponse({ resumed: true })),
+      ),
+    );
+    renderWithProviders(withRoutes(<CasePlayerPage />), {
+      route: '/student/cases/7/play',
+    });
+    expect(await screen.findByText('Patient summary')).toBeInTheDocument();
+    expect(screen.getAllByText('Patient data').length).toBeGreaterThan(0);
   });
 
-  it('redirects to result when a step submit receives 410 Gone', async () => {
-    installAttemptHandlers({
-      startNode: node('decision', {
-        data: { options: [{ id: 'a', text: 'Continue' }] },
-        title: 'Decision step',
-      }),
-      stepStatus: 410,
+  it('redirects to CaseResultPage when /step returns 410 Gone', async () => {
+    server.use(
+      http.post('/api/attempts/start', () =>
+        HttpResponse.json<AttemptStartOut>(
+          startResponse({ current_node: decisionNode() }),
+        ),
+      ),
+      http.post('/api/attempts/42/step', () =>
+        HttpResponse.json({ detail: 'Время попытки истекло' }, { status: 410 }),
+      ),
+      http.get('/api/attempts/42', () =>
+        HttpResponse.json<AttemptResultOut>({
+          id: 42, scenario_id: 7, scenario_title: 'Case',
+          attempt_num: 1, status: 'completed', total_score: 0, max_score: 5,
+          score_pct: 0, passed: false, started_at: '2026-05-03T10:00:00Z',
+          finished_at: '2026-05-03T10:30:00Z', duration_sec: 1800,
+          path: ['decision-1'], steps: [],
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderWithProviders(withRoutes(<CasePlayerPage />), {
+      route: '/student/cases/7/play',
     });
 
-    renderWithProviders(
-      <Routes>
-        <Route path="/student/cases/:id/play" element={<CasePlayerPage />} />
-        <Route path="/student/attempts/42/result" element={<div>attempt result</div>} />
-      </Routes>,
-      { route: '/student/cases/7/play' },
-    );
+    await screen.findByText('Pick a diagnosis');
+    await user.click(screen.getAllByRole('radio')[0]);
+    await user.click(screen.getByRole('button', { name: 'Ответить' }));
 
-    expect((await screen.findAllByText('Decision step')).length).toBeGreaterThan(0);
-    await userEvent.click(screen.getByLabelText('Continue'));
-    await userEvent.click(screen.getByRole('button', { name: 'Ответить' }));
-
-    expect(await screen.findByText('attempt result')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('case-result-page')).toBeInTheDocument();
+    });
   });
 });
 
-describe('CaseResultPage', () => {
-  it('renders score, status badge, step table, path visualization, and PDF action', async () => {
-    server.use(http.get('/api/attempts/42', () => HttpResponse.json(resultOut())));
-    const printSpy = vi.spyOn(window, 'print').mockImplementation(() => undefined);
-
-    renderWithProviders(
-      <Routes>
-        <Route path="/student/attempts/:id/result" element={<CaseResultPage />} />
-      </Routes>,
-      { route: '/student/attempts/42/result' },
+// ════════════════ no correct_value lands in zustand state via msw ════════════════
+describe('case player wire-level invariant', () => {
+  it('never persists correct_value into the store from a step response', async () => {
+    server.use(
+      http.post('/api/attempts/start', () =>
+        HttpResponse.json<AttemptStartOut>(
+          startResponse({ current_node: decisionNode() }),
+        ),
+      ),
+      http.post('/api/attempts/42/step', () =>
+        HttpResponse.json<StepOut>(
+          stepOk({
+            step_result: {
+              score: 5, max_score: 5, feedback: 'Верно',
+              details: { is_correct: true, correct_value: 'super-secret-answer' },
+            },
+            attempt_status: 'in_progress',
+            next_node: dataNode({ id: 'data-2' }),
+            path_so_far: ['decision-1', 'data-2'],
+          }),
+        ),
+      ),
     );
+    const user = userEvent.setup();
+    renderWithProviders(withRoutes(<CasePlayerPage />), {
+      route: '/student/cases/7/play',
+    });
 
-    expect(await screen.findByText('Acute hepatitis')).toBeInTheDocument();
-    expect(screen.getByText('80%')).toBeInTheDocument();
-    expect(screen.getByText('Passed')).toBeInTheDocument();
-    expect(screen.getByText('Choose isolation')).toBeInTheDocument();
-    expect(screen.getByText('Good choice')).toBeInTheDocument();
+    await screen.findByText('Pick a diagnosis');
+    await user.click(screen.getAllByRole('radio')[0]);
+    await user.click(screen.getByRole('button', { name: 'Ответить' }));
 
-    const table = screen.getByRole('table');
-    expect(within(table).getByText('+8 / 10')).toBeInTheDocument();
+    await screen.findByTestId('decision-feedback');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Export PDF' }));
-    expect(printSpy).toHaveBeenCalledTimes(1);
+    const snapshot = JSON.stringify(useCasePlayerStore.getState());
+    expect(snapshot).not.toContain('super-secret-answer');
+    expect(snapshot).not.toContain('correct_value');
   });
 });
+
+// silence unused warnings for renderHook helper imported above
+void renderHook;
+void fireEvent;

@@ -1,109 +1,102 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
 import { attemptsApi } from '@/api/attempts';
-import { notify } from '@/components/ui/Toast';
 import { cn } from '@/utils/cn';
+
+const POLL_INTERVAL_MS = 30_000;
+const TICK_INTERVAL_MS = 1_000;
+const WARNING_THRESHOLD_SEC = 300;
+const DANGER_THRESHOLD_SEC = 60;
 
 export interface ServerTimerProps {
   attemptId: number;
-  expiresAt: string | null;
-  initialRemainingSec?: number | null;
-  onExpired?: () => void;
+  initialExpiresAt: string | null;
+  onExpire?: () => void;
 }
 
-function secondsFromExpiry(expiresAt: string | null) {
+function format(seconds: number) {
+  const safe = Math.max(0, seconds);
+  const m = Math.floor(safe / 60).toString().padStart(2, '0');
+  const s = (safe % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function diffSec(expiresAt: string | null) {
   if (!expiresAt) return null;
-  return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1_000));
+  const target = new Date(expiresAt).getTime();
+  if (Number.isNaN(target)) return null;
+  return Math.max(0, Math.floor((target - Date.now()) / 1000));
 }
 
-function formatSeconds(value: number | null) {
-  if (value === null) return 'Без лимита';
-  const minutes = Math.floor(value / 60);
-  const seconds = value % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
+export function ServerTimer({ attemptId, initialExpiresAt, onExpire }: ServerTimerProps) {
+  const [expiresAt, setExpiresAt] = useState<string | null>(initialExpiresAt);
+  const [remaining, setRemaining] = useState<number | null>(() => diffSec(initialExpiresAt));
+  const expiredRef = useRef(false);
+  const onExpireRef = useRef(onExpire);
+  onExpireRef.current = onExpire;
 
-function timerState(remaining: number | null) {
-  if (remaining === null) return 'none';
-  if (remaining <= 0) return 'expired';
-  if (remaining <= 60) return 'danger';
-  if (remaining <= 300) return 'warning';
-  return 'normal';
-}
-
-export default function ServerTimer({ attemptId, expiresAt, initialRemainingSec, onExpired }: ServerTimerProps) {
-  const navigate = useNavigate();
-  const [remaining, setRemaining] = useState<number | null>(
-    initialRemainingSec ?? secondsFromExpiry(expiresAt),
-  );
-  const finishedRef = useRef(false);
-  const warnedFiveRef = useRef(false);
-  const warnedOneRef = useRef(false);
-  const state = timerState(remaining);
-
-  useEffect(() => {
-    setRemaining(initialRemainingSec ?? secondsFromExpiry(expiresAt));
-  }, [expiresAt, initialRemainingSec]);
-
-  useEffect(() => {
-    if (remaining === null) return undefined;
-    const interval = window.setInterval(() => {
-      setRemaining((current) => (current === null ? null : Math.max(0, current - 1)));
-    }, 1_000);
-    return () => window.clearInterval(interval);
-  }, [remaining === null]);
-
+  // Local 1s countdown
   useEffect(() => {
     if (!expiresAt) return undefined;
-    const poll = async () => {
-      try {
-        const serverTime = await attemptsApi.timeRemaining(attemptId);
-        setRemaining(serverTime.remaining_sec);
-      } catch {
-        setRemaining((current) => current);
+    const tick = window.setInterval(() => {
+      const left = diffSec(expiresAt);
+      setRemaining(left);
+      if (left === 0 && !expiredRef.current) {
+        expiredRef.current = true;
+        onExpireRef.current?.();
       }
+    }, TICK_INTERVAL_MS);
+    return () => window.clearInterval(tick);
+  }, [expiresAt]);
+
+  // Server polling every 30s; cleanup on unmount
+  useEffect(() => {
+    let cancelled = false;
+    const poll = window.setInterval(() => {
+      attemptsApi
+        .timeRemaining(attemptId)
+        .then((r) => {
+          if (cancelled) return;
+          if (r.expires_at) setExpiresAt(r.expires_at);
+          if (r.remaining_sec !== null && r.remaining_sec !== undefined) {
+            setRemaining(r.remaining_sec);
+            if (r.remaining_sec === 0 && !expiredRef.current) {
+              expiredRef.current = true;
+              onExpireRef.current?.();
+            }
+          }
+        })
+        .catch(() => {
+          // 410 / network errors are handled at higher level (axios interceptor + page).
+        });
+    }, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(poll);
     };
-    const interval = window.setInterval(poll, 30_000);
-    return () => window.clearInterval(interval);
-  }, [attemptId, expiresAt]);
+  }, [attemptId]);
 
-  useEffect(() => {
-    if (remaining === null) return;
-    if (remaining <= 300 && remaining > 60 && !warnedFiveRef.current) {
-      warnedFiveRef.current = true;
-      notify.warning('До конца попытки осталось меньше 5 минут');
-    }
-    if (remaining <= 60 && remaining > 0 && !warnedOneRef.current) {
-      warnedOneRef.current = true;
-      notify.warning('До конца попытки осталось меньше 1 минуты');
-    }
-  }, [remaining]);
+  if (remaining === null) return null;
 
-  useEffect(() => {
-    if (remaining !== 0 || finishedRef.current) return;
-    finishedRef.current = true;
-    void attemptsApi.finish(attemptId).finally(() => {
-      notify.warning('Время истекло');
-      onExpired?.();
-      navigate(`/student/attempts/${attemptId}/result`);
-    });
-  }, [attemptId, navigate, onExpired, remaining]);
+  const state =
+    remaining <= DANGER_THRESHOLD_SEC ? 'danger' : remaining <= WARNING_THRESHOLD_SEC ? 'warning' : 'muted';
 
-  const label = useMemo(() => formatSeconds(remaining), [remaining]);
+  const stateClass =
+    state === 'danger'
+      ? 'text-danger animate-pulse'
+      : state === 'warning'
+        ? 'text-warning'
+        : 'text-fg-muted';
 
   return (
-    <div
-      aria-label="time remaining"
-      className={cn(
-        'tabular-nums rounded-lg border border-border bg-bg px-3 py-2 text-sm font-semibold',
-        state === 'normal' && 'text-fg-muted',
-        state === 'warning' && 'timer-warning',
-        state === 'danger' && 'timer-danger',
-        state === 'expired' && 'text-danger',
-      )}
-      data-timer-state={state}
+    <span
+      data-testid="server-timer"
+      data-state={state}
+      aria-live="polite"
+      className={cn('font-mono text-sm font-medium', stateClass)}
     >
-      {label}
-    </div>
+      {format(remaining)}
+    </span>
   );
 }
+
+export default ServerTimer;

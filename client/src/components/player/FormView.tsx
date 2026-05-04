@@ -1,211 +1,140 @@
-import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
-import FeedbackBanner from './FeedbackBanner';
-import type { StepOut } from '@/types/attempt';
-import type { JsonObject, NodeOut } from '@/types/scenario';
+import { Input } from '@/components/ui/Input';
+import type { NodeOut } from '@/types/scenario';
+import type { PlayerFeedback } from '@/stores/casePlayerStore';
 
-type FieldType = 'text' | 'textarea' | 'select' | 'date' | 'number' | 'checkbox' | 'radio';
-
-interface FormField {
-  id?: string;
-  key?: string;
-  label?: string;
-  options?: Array<string | { label?: string; value?: string }>;
-  regex?: string;
+interface FieldDef {
+  id: string;
+  label: string;
+  type?: string;
   required?: boolean;
-  type?: FieldType;
   validation_regex?: string;
+}
+
+function readFields(data: NodeOut['data']): FieldDef[] {
+  if (!Array.isArray(data.fields)) return [];
+  return data.fields
+    .filter((f): f is Record<string, unknown> => Boolean(f) && typeof f === 'object')
+    .map((f) => ({
+      id: String(f.id ?? ''),
+      label: String(f.label ?? f.id ?? ''),
+      type: typeof f.type === 'string' ? f.type : 'text',
+      required: Boolean(f.required),
+      validation_regex: typeof f.validation_regex === 'string' ? f.validation_regex : undefined,
+    }))
+    .filter((f) => f.id);
+}
+
+function buildSchema(fields: FieldDef[]) {
+  const shape: Record<string, z.ZodTypeAny> = {};
+  for (const f of fields) {
+    let s: z.ZodTypeAny = z.string();
+    if (f.required) s = (s as z.ZodString).min(1, 'Поле обязательно');
+    if (f.validation_regex) {
+      try {
+        const re = new RegExp(f.validation_regex);
+        s = (s as z.ZodString).regex(re, 'Не соответствует формату');
+      } catch {
+        // ignore malformed pattern; backend remains the authoritative validator.
+      }
+    }
+    shape[f.id] = s;
+  }
+  return z.object(shape);
 }
 
 export interface FormViewProps {
   node: NodeOut;
-  onAdvance: (nextNode: NodeOut | null, result: StepOut) => void;
-  onSubmit: (answerData: JsonObject) => Promise<StepOut>;
+  feedback?: PlayerFeedback | null;
+  onSubmit: (values: Record<string, string>) => void;
+  onNext: () => void;
+  isSubmitting?: boolean;
 }
 
-type FormValues = Record<string, string | number | boolean>;
-
-function fieldsFrom(data: JsonObject): FormField[] {
-  return Array.isArray(data.fields) ? (data.fields as FormField[]) : [];
-}
-
-function fieldName(field: FormField, index: number) {
-  return field.key ?? field.id ?? `field_${index}`;
-}
-
-function fieldSchema(field: FormField) {
-  const type = field.type ?? 'text';
-  if (type === 'checkbox') return z.boolean();
-  if (type === 'number') {
-    const schema = z.coerce.number({ invalid_type_error: 'Введите число' });
-    return field.required ? schema.refine((value) => Number.isFinite(value), 'Required') : schema;
-  }
-
-  let schema = z.string();
-  if (field.required) schema = schema.min(1, 'Required');
-  const pattern = field.validation_regex ?? field.regex;
-  if (pattern) schema = schema.regex(new RegExp(pattern), 'Invalid format');
-  return schema;
-}
-
-function defaultValue(field: FormField) {
-  if (field.type === 'checkbox') return false;
-  if (field.type === 'number') return '';
-  return '';
-}
-
-export default function FormView({ node, onAdvance, onSubmit }: FormViewProps) {
-  const fields = useMemo(() => fieldsFrom(node.data), [node.data]);
-  const [step, setStep] = useState<StepOut | null>(null);
-  const [canAdvance, setCanAdvance] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const schema = useMemo(
-    () =>
-      z.object(
-        Object.fromEntries(fields.map((field, index) => [fieldName(field, index), fieldSchema(field)])),
-      ),
-    [fields],
-  );
+export function FormView({ node, feedback, onSubmit, onNext, isSubmitting }: FormViewProps) {
+  const fields = readFields(node.data);
+  const schema = buildSchema(fields);
   const {
-    formState: { errors },
-    handleSubmit,
     register,
-    reset,
-    setError,
-  } = useForm<FormValues>({
-    defaultValues: Object.fromEntries(fields.map((field, index) => [fieldName(field, index), defaultValue(field)])),
+    handleSubmit,
+    formState: { errors },
+  } = useForm<Record<string, string>>({
+    defaultValues: Object.fromEntries(fields.map((f) => [f.id, ''])),
   });
 
-  useEffect(() => {
-    reset(Object.fromEntries(fields.map((field, index) => [fieldName(field, index), defaultValue(field)])));
-    setStep(null);
-    setCanAdvance(false);
-  }, [fields, reset]);
+  const submitted = feedback != null;
 
-  useEffect(() => {
-    if (!step) return undefined;
-    const timer = window.setTimeout(() => setCanAdvance(true), 1_000);
-    return () => window.clearTimeout(timer);
-  }, [step]);
-
-  const submit = handleSubmit(async (values) => {
-    const parsed = schema.safeParse(values);
-    if (!parsed.success) {
-      parsed.error.issues.forEach((issue) => {
-        const name = String(issue.path[0]);
-        setError(name, { message: issue.message, type: 'validate' });
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const result = await onSubmit({ fields: parsed.data });
-      setStep(result);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const submit = handleSubmit((raw) => {
+    const parsed = schema.safeParse(raw);
+    if (!parsed.success) return;
+    onSubmit(parsed.data as Record<string, string>);
   });
 
   return (
-    <article className="space-y-5">
-      <div>
-        <p className="text-sm font-medium text-royal">Форма</p>
-        <h2 className="text-2xl font-semibold text-fg">{node.title}</h2>
-      </div>
-
-      <form className="space-y-4" onSubmit={submit}>
-        {fields.map((field, index) => {
-          const name = fieldName(field, index);
-          const label = field.label ?? name;
-          const type = field.type ?? 'text';
-          const error = errors[name]?.message;
-
-          if (type === 'textarea') {
-            return (
-              <div className="space-y-1.5" key={name}>
-                <label className="block text-sm font-medium text-fg" htmlFor={name}>
-                  {label}
-                </label>
-                <textarea
-                  className="focus-ring min-h-28 w-full rounded border border-border bg-bg px-3 py-2 text-sm text-fg"
-                  id={name}
-                  {...register(name)}
-                />
-                {error ? <p className="text-xs text-danger">{String(error)}</p> : null}
-              </div>
-            );
-          }
-
-          if (type === 'select' || type === 'radio') {
-            const options = field.options ?? [];
-            return (
-              <div className="space-y-1.5" key={name}>
-                <label className="block text-sm font-medium text-fg" htmlFor={name}>
-                  {label}
-                </label>
-                <select
-                  className="focus-ring h-10 w-full rounded border border-border bg-bg px-3 text-sm text-fg"
-                  id={name}
-                  {...register(name)}
-                >
-                  <option value="">Выберите</option>
-                  {options.map((option) => {
-                    const value = typeof option === 'string' ? option : option.value ?? option.label ?? '';
-                    const text = typeof option === 'string' ? option : option.label ?? option.value ?? '';
-                    return (
-                      <option key={value} value={value}>
-                        {text}
-                      </option>
-                    );
-                  })}
-                </select>
-                {error ? <p className="text-xs text-danger">{String(error)}</p> : null}
-              </div>
-            );
-          }
-
-          if (type === 'checkbox') {
-            return (
-              <label className="flex items-center gap-3 text-sm text-fg" key={name}>
-                <input className="focus-ring h-4 w-4 accent-royal" type="checkbox" {...register(name)} />
-                <span>{label}</span>
-              </label>
-            );
-          }
-
+    <section className="space-y-4">
+      <h2 className="text-xl font-semibold text-fg">{node.title}</h2>
+      <form
+        className="space-y-3"
+        onSubmit={(e) => {
+          void submit(e);
+        }}
+        noValidate
+      >
+        {fields.map((f) => {
+          const fieldError = errors[f.id]?.message;
           return (
-            <div className="space-y-1.5" key={name}>
-              <label className="block text-sm font-medium text-fg" htmlFor={name}>
-                {label}
-              </label>
-              <input
-                className="focus-ring h-10 w-full rounded border border-border bg-bg px-3 text-sm text-fg"
-                id={name}
-                type={type}
-                {...register(name)}
+            <div key={f.id} className="space-y-1">
+              <Input
+                label={f.label}
+                type={f.type === 'number' ? 'number' : 'text'}
+                {...register(f.id, {
+                  validate: (value) => {
+                    if (f.required && !String(value ?? '').trim()) return 'Поле обязательно';
+                    return true;
+                  },
+                })}
+                aria-invalid={Boolean(fieldError)}
               />
-              {error ? <p className="text-xs text-danger">{String(error)}</p> : null}
+              {fieldError ? (
+                <p className="text-xs text-danger" role="alert">
+                  {String(fieldError)}
+                </p>
+              ) : null}
             </div>
           );
         })}
 
-        {step ? <FeedbackBanner result={step.step_result} /> : null}
+        {submitted && feedback ? (
+          <div
+            data-testid="form-feedback"
+            data-correct={String(feedback.is_correct)}
+            className={
+              feedback.is_correct
+                ? 'rounded-xl border border-success bg-success/10 p-3 text-sm text-success'
+                : 'rounded-xl border border-danger bg-danger/10 p-3 text-sm text-danger'
+            }
+          >
+            <p>{feedback.feedback || (feedback.is_correct ? 'Верно' : 'Неверно')}</p>
+            <p>
+              Баллы: {feedback.score}/{feedback.max_score}
+            </p>
+          </div>
+        ) : null}
 
-        <div className="flex justify-end gap-3">
-          {!step ? (
-            <Button isLoading={isSubmitting} type="submit">
-              Отправить форму
-            </Button>
-          ) : (
-            <Button disabled={!canAdvance} onClick={() => onAdvance(step.next_node, step)}>
-              Далее
-            </Button>
-          )}
-        </div>
+        {submitted ? (
+          <Button type="button" onClick={onNext}>
+            Далее
+          </Button>
+        ) : (
+          <Button type="submit" isLoading={isSubmitting}>
+            Ответить
+          </Button>
+        )}
       </form>
-    </article>
+    </section>
   );
 }
+
+export default FormView;

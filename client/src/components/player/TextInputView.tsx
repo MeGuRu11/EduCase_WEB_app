@@ -1,92 +1,67 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import FeedbackBanner from './FeedbackBanner';
-import type { StepOut } from '@/types/attempt';
-import type { JsonObject, NodeOut } from '@/types/scenario';
+import type { NodeOut } from '@/types/scenario';
+import type { PlayerFeedback } from '@/stores/casePlayerStore';
 
 export interface TextInputViewProps {
   node: NodeOut;
-  onAdvance: (nextNode: NodeOut | null, result: StepOut) => void;
-  onSubmit: (answerData: JsonObject) => Promise<StepOut>;
+  feedback?: PlayerFeedback | null;
+  onSubmit: (value: string) => void;
+  onNext: () => void;
+  isSubmitting?: boolean;
 }
 
-function matchedKeywords(details: JsonObject) {
-  const raw = details.matched_keywords;
-  return Array.isArray(raw) ? raw.map(String) : [];
-}
-
-export default function TextInputView({ node, onAdvance, onSubmit }: TextInputViewProps) {
-  const minLength = Number(node.data.min_length ?? 0);
-  const [text, setText] = useState('');
-  const [step, setStep] = useState<StepOut | null>(null);
-  const [canAdvance, setCanAdvance] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const canSubmit = text.trim().length >= minLength;
-  const matches = step ? matchedKeywords(step.step_result.details) : [];
-
-  useEffect(() => {
-    setText('');
-    setStep(null);
-    setCanAdvance(false);
-  }, [node.id]);
-
-  useEffect(() => {
-    if (!step) return undefined;
-    const timer = window.setTimeout(() => setCanAdvance(true), 1_000);
-    return () => window.clearTimeout(timer);
-  }, [step]);
-
-  const submit = async () => {
-    setIsSubmitting(true);
-    try {
-      const result = await onSubmit({ text });
-      setStep(result);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+export function TextInputView({ node, feedback, onSubmit, onNext, isSubmitting }: TextInputViewProps) {
+  const minLength = Number(node.data.min_length ?? 1);
+  const [value, setValue] = useState('');
+  const submitted = feedback != null;
+  const canSubmit = value.trim().length >= minLength;
 
   return (
-    <article className="space-y-5">
-      <div>
-        <p className="text-sm font-medium text-purple">Свободный ответ</p>
-        <h2 className="text-2xl font-semibold text-fg">{node.title}</h2>
-      </div>
-
+    <section className="space-y-4">
+      <h2 className="text-xl font-semibold text-fg">{node.title}</h2>
       <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-fg" htmlFor={`text-${node.id}`}>
+        <label htmlFor={`text-${node.id}`} className="block text-sm font-medium text-fg">
           Ответ
         </label>
         <textarea
-          className="focus-ring min-h-40 w-full rounded border border-border bg-bg px-3 py-2 text-sm text-fg"
           id={`text-${node.id}`}
-          onChange={(event) => setText(event.target.value)}
-          value={text}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          disabled={submitted || isSubmitting}
+          className="min-h-32 w-full rounded border border-border bg-bg px-3 py-2 text-sm text-fg focus:border-royal focus:outline-none focus:ring-2 focus:ring-royal/40"
         />
         <p className="text-xs text-fg-muted">
-          {text.trim().length} / {minLength}
+          Минимум {minLength} символов · введено {value.trim().length}
         </p>
       </div>
 
-      {step ? <FeedbackBanner result={step.step_result} /> : null}
-
-      {matches.length ? (
-        <div className="rounded-lg border border-success/30 bg-success/10 p-3 text-sm text-success">
-          Совпавшие ключевые слова: {matches.join(', ')}
+      {submitted && feedback ? (
+        <div
+          data-testid="text-feedback"
+          data-correct={String(feedback.is_correct)}
+          className={
+            feedback.is_correct
+              ? 'rounded-xl border border-success bg-success/10 p-3 text-sm text-success'
+              : 'rounded-xl border border-danger bg-danger/10 p-3 text-sm text-danger'
+          }
+        >
+          <p>{feedback.feedback || (feedback.is_correct ? 'Верно' : 'Неверно')}</p>
+          <p>
+            Баллы: {feedback.score}/{feedback.max_score}
+          </p>
         </div>
       ) : null}
 
-      <div className="flex justify-end gap-3">
-        {!step ? (
-          <Button disabled={!canSubmit} isLoading={isSubmitting} onClick={submit}>
-            Ответить
-          </Button>
-        ) : (
-          <Button disabled={!canAdvance} onClick={() => onAdvance(step.next_node, step)}>
-            Далее
-          </Button>
-        )}
-      </div>
-    </article>
+      {submitted ? (
+        <Button onClick={onNext}>Далее</Button>
+      ) : (
+        <Button onClick={() => onSubmit(value.trim())} disabled={!canSubmit || isSubmitting} isLoading={isSubmitting}>
+          Ответить
+        </Button>
+      )}
+    </section>
   );
 }
+
+export default TextInputView;

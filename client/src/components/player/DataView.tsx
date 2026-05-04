@@ -1,95 +1,59 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/Button';
-import type { JsonObject, NodeOut } from '@/types/scenario';
+import type { NodeOut } from '@/types/scenario';
 
-interface Attachment {
-  id?: string | number;
-  name?: string;
-  type?: string;
-  url?: string;
-}
+// CRITICAL: only same-origin /media/ paths are permitted in href/src attributes.
+// External URLs (http(s)://, javascript:, data:, file:, …) are rejected.
+export const ALLOWED_URI_REGEXP = /^\/media\//;
+
+const NEXT_BUTTON_DELAY_MS = 1_000;
 
 export interface DataViewProps {
   node: NodeOut;
-  onContinue: () => void | Promise<void>;
+  onNext: () => void;
 }
 
-function attachmentsFrom(data: JsonObject): Attachment[] {
-  return Array.isArray(data.attachments) ? (data.attachments as Attachment[]) : [];
-}
+export function DataView({ node, onNext }: DataViewProps) {
+  const html = String(node.data.html ?? '');
+  const sanitized = DOMPurify.sanitize(html, {
+    ALLOWED_URI_REGEXP,
+    ADD_ATTR: ['target', 'rel'],
+  });
 
-export default function DataView({ node, onContinue }: DataViewProps) {
-  const [canContinue, setCanContinue] = useState(false);
-  const content = String(node.data.content_html ?? node.data.html ?? '');
-  const attachments = attachmentsFrom(node.data);
-  const safeHtml = useMemo(
-    () =>
-      DOMPurify.sanitize(content, {
-        ALLOWED_ATTR: ['src', 'alt', 'class', 'colspan', 'rowspan'],
-        ALLOWED_TAGS: [
-          'p',
-          'strong',
-          'em',
-          'ul',
-          'ol',
-          'li',
-          'br',
-          'h3',
-          'h4',
-          'table',
-          'tr',
-          'td',
-          'th',
-          'thead',
-          'tbody',
-          'img',
-        ],
-        ALLOWED_URI_REGEXP: /^\/media\//,
-      }),
-    [content],
-  );
-
+  const [canProceed, setCanProceed] = useState(false);
   useEffect(() => {
-    setCanContinue(false);
-    const timer = window.setTimeout(() => setCanContinue(true), 1_000);
+    setCanProceed(false);
+    const timer = window.setTimeout(() => setCanProceed(true), NEXT_BUTTON_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [node.id]);
 
+  const attachments = Array.isArray(node.data.attachments) ? node.data.attachments : [];
+
   return (
-    <article className="space-y-5">
-      <div>
-        <p className="text-sm font-medium text-royal">Информационный блок</p>
-        <h2 className="text-2xl font-semibold text-fg">{node.title}</h2>
-      </div>
-
+    <section className="space-y-4">
+      <header>
+        <h2 className="text-xl font-semibold text-fg">{node.title}</h2>
+      </header>
       <div
-        className="prose max-w-none rounded-lg border border-border bg-surface p-4 text-fg"
-        dangerouslySetInnerHTML={{ __html: safeHtml }}
+        data-testid="data-view-content"
+        className="prose max-w-none rounded-xl border border-border bg-bg p-4 text-sm text-fg"
+        dangerouslySetInnerHTML={{ __html: sanitized }}
       />
-
       {attachments.length ? (
-        <section className="space-y-3">
-          <h3 className="text-sm font-semibold text-fg">Материалы</h3>
-          <div className="grid gap-3 md:grid-cols-2">
-            {attachments.map((attachment, index) => (
-              <a
-                className="focus-ring rounded-lg border border-border bg-bg p-3 text-sm text-royal hover:bg-surface"
-                href={attachment.url ?? '#'}
-                key={attachment.id ?? index}
-              >
-                {attachment.name ?? `Файл ${index + 1}`}
-              </a>
-            ))}
-          </div>
-        </section>
+        <ul className="flex flex-wrap gap-2">
+          {attachments.map((a, i) => (
+            <li key={String(a) + i} className="text-xs text-fg-muted">
+              {String(a)}
+            </li>
+          ))}
+        </ul>
       ) : null}
-
-      <div className="flex justify-end">
-        <Button disabled={!canContinue} onClick={onContinue}>
-          Далее
-        </Button>
-      </div>
-    </article>
+      <Button onClick={onNext} disabled={!canProceed}>
+        Далее
+      </Button>
+    </section>
   );
 }
+
+export default DataView;

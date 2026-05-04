@@ -1,48 +1,43 @@
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import PathVisualization from './PathVisualization';
 import type { AttemptResultOut } from '@/types/attempt';
-import type { NodeOut } from '@/types/scenario';
 
 export interface FinalViewProps {
-  attempt: AttemptResultOut;
-  nodes?: NodeOut[];
-  onExportPdf: () => void;
+  result: AttemptResultOut;
 }
 
-export default function FinalView({ attempt, nodes = [], onExportPdf }: FinalViewProps) {
+function formatDuration(sec: number | null) {
+  if (sec == null) return '—';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}m ${s.toString().padStart(2, '0')}s`;
+}
+
+export function FinalView({ result }: FinalViewProps) {
   return (
-    <article className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-royal">Итог попытки</p>
-          <h2 className="text-2xl font-semibold text-fg">{attempt.scenario_title}</h2>
+    <section className="space-y-3 rounded-xl border border-border bg-bg p-6">
+      <Badge data-testid="final-badge" variant={result.passed ? 'success' : 'danger'}>
+        {result.passed ? 'Passed' : 'Failed'}
+      </Badge>
+      <h2 className="text-2xl font-bold text-fg">{result.scenario_title}</h2>
+      <p className="text-sm text-fg-muted">Попытка #{result.attempt_num}</p>
+      <dl className="grid gap-2 text-sm">
+        <div className="flex justify-between">
+          <dt>Баллы</dt>
+          <dd className="font-medium text-fg">
+            {result.total_score}/{result.max_score}
+          </dd>
         </div>
-        <Badge variant={attempt.passed ? 'success' : 'danger'}>{attempt.passed ? 'Passed' : 'Failed'}</Badge>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-lg border border-border bg-bg p-4">
-          <p className="text-xs text-fg-muted">Score</p>
-          <p className="text-2xl font-semibold text-fg">{attempt.score_pct}%</p>
+        <div className="flex justify-between">
+          <dt>Длительность</dt>
+          <dd className="font-medium text-fg">{formatDuration(result.duration_sec)}</dd>
         </div>
-        <div className="rounded-lg border border-border bg-bg p-4">
-          <p className="text-xs text-fg-muted">Баллы</p>
-          <p className="text-2xl font-semibold text-fg">
-            {attempt.total_score} / {attempt.max_score}
-          </p>
+        <div className="flex justify-between">
+          <dt>Шагов</dt>
+          <dd className="font-medium text-fg">{result.path.length}</dd>
         </div>
-        <div className="rounded-lg border border-border bg-bg p-4">
-          <p className="text-xs text-fg-muted">Длительность</p>
-          <p className="text-2xl font-semibold text-fg">{attempt.duration_sec ?? 0}с</p>
-        </div>
-      </div>
-
-      <PathVisualization nodes={nodes} path={attempt.path} />
-
-      <div className="flex justify-end">
-        <Button onClick={onExportPdf}>Export PDF</Button>
-      </div>
-    </article>
+      </dl>
+    </section>
   );
 }
+
+export default FinalView;
