@@ -5,6 +5,8 @@ import { setupServer } from 'msw/node';
 
 export const server = setupServer();
 
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 
 afterEach(() => {

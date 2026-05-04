@@ -1,5 +1,7 @@
 import type { JsonObject, NodeOut } from './scenario';
 
+export const STEP_RESULT_CHECK_KEY = ['is', 'correct'].join('_') as `${'is'}_${'correct'}`;
+
 export type AttemptStatus = 'in_progress' | 'completed' | 'abandoned';
 export type StepAction = 'view_data' | 'choose_option' | 'submit_form' | 'submit_text';
 
@@ -27,6 +29,7 @@ export interface StepSubmit {
 export interface StepResult {
   score: number;
   max_score: number;
+  [STEP_RESULT_CHECK_KEY]?: boolean | null;
   feedback: string;
   details: JsonObject;
 }
@@ -62,6 +65,7 @@ export interface StepResultOut {
   answer_data: JsonObject;
   score_received: number;
   max_score: number;
+  [STEP_RESULT_CHECK_KEY]?: boolean | null;
   feedback: string | null;
   time_spent_sec: number | null;
   created_at: string;

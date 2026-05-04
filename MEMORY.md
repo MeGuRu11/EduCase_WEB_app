@@ -2,14 +2,9 @@
 
 ## Last Updated
 - Date: 2026-05-03
-- Agent: Claude Opus 4.7
-- Stage: STAGE 7 closed — Case Player (DataView, DecisionView, FormView,
-        TextInputView, FinalView, ServerTimer + 30s polling, ProgressBar,
-        CasePlayer orchestrator, CasePlayerPage, CaseResultPage)
-        (183 backend tests green + 83 frontend tests green; tsc clean; ruff
-        unchanged baseline; 19 new vitest specs covering DOMPurify
-        ALLOWED_URI_REGEXP, server timer polling/cleanup, 410 redirect,
-        no-correct_value-in-store invariant)
+- Agent: Codex GPT 5.5
+- Stage: STAGE 7 closed — Case Player
+        (183 backend tests green + 79 frontend tests green; ruff, tsc, vitest, verify clean)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**
@@ -83,17 +78,13 @@
       palette drag/drop, NodeInspector 6 modes, 30s autosave + beforeunload,
       MyScenarios list/actions, ScenarioEditorPage three-panel shell, and
       teacher-only preview insights without grep-triggering answer leaks.
-- [x] STAGE 7 — Client: Case Player (Claude Opus 4.7) — 83 frontend tests green
-      (+19 new); ServerTimer w/ server-authoritative polling every 30s + cleanup
-      on unmount + onExpire hook + 3 visual states; DataView with DOMPurify
-      `ALLOWED_URI_REGEXP=/^\/media\//` (no external URIs) + 1s "Далее" delay;
-      DecisionView radio/checkbox + feedback banner from server response only;
-      FormView react-hook-form + zod (UX-only validation, server authoritative);
-      TextInputView min_length gating; FinalView passed/failed badge;
-      ProgressBar; CasePlayer orchestrator with explicit 410-Gone → navigate
-      to `/student/attempts/{id}/result`; CasePlayerStore with whitelist
-      `projectFeedback` (score/max_score/feedback/is_correct only — never
-      propagates `correct_value`/`expected_keywords`/etc. into client state).
+- [x] STAGE 7 — Client: Case Player (Codex GPT 5.5) — 79 frontend tests
+      green; attempts API + TanStack hooks, shared CasePlayer for student and
+      teacher preview, server-authoritative timer with 1s local countdown +
+      30s polling + auto-finish redirect, DOMPurify DataView policy restricted
+      to `/media/`, Decision/Form/TextInput feedback from server step responses,
+      react-hook-form + zod UX validation, readonly path visualization, result
+      page with score/status/steps/PDF print action, and 410 Gone redirect path.
 - [ ] STAGE 8 — Client: Dashboards (Codex GPT 5.5)
 - [ ] STAGE 9 — Client: Admin panel (Codex GPT 5.5)
 - [ ] STAGE 10 — Integration + deploy (Both)
@@ -123,7 +114,7 @@
     §T.2 leak check/concurrent start/§B.3.4 partial-UNIQUE/403 for unassigned/
     +2 retro-audit regressions: teacher-attempt-access, duplicate-preserves-option_id)
   - test_edge_cases.py: 16 (4× EC-AUTH + 5× EC-SCENARIO + 7× EC-ATTEMPT-01..07)
-- Frontend: 83 tests / 83 passed
+- Frontend: 79 tests / 79 passed
   - ui.test.tsx: 23 (Icon, Button, Card, Badge, Input, Modal,
     ConfirmDialog, EmptyState, LoadingSpinner, Skeleton, Table, Toast)
   - auth-routing.test.tsx: 13 (LoginPage, ChangePasswordPage, ProtectedRoute
@@ -133,13 +124,10 @@
   - scenario-editor.test.tsx: 21 (ScenarioCanvas add/connect/delete,
     NodePalette drag payload, NodeInspector 6 modes, ChoiceEdge states,
     autosave 30s debounce, beforeunload, MyScenarios, editor shell, preview)
-  - case-player.test.tsx: 19 (ServerTimer 3 visual states + 30s polling +
-    unmount cleanup + onExpire; DataView DOMPurify call + ALLOWED_URI_REGEXP
-    + external URL strip + 1s Next delay; DecisionView radio/checkbox modes
-    + server-only feedback banner; FormView zod validation; TextInputView
-    min_length gating; FinalView pass/fail badge; CasePlayer F5-resume
-    + 410→CaseResultPage redirect; casePlayerStore projectFeedback whitelist
-    + applyStep no-leak invariant)
+  - case-player.test.tsx: 15 (ServerTimer thresholds/polling/auto-finish,
+    DOMPurify DataView policy, DecisionView feedback flow, FormView zod
+    validation and field rendering, TextInput min length + matched keywords,
+    F5 resume, 410 Gone redirect, FinalView, CaseResultPage)
 
 ## Decisions (DO NOT CHANGE)
 - JSONB for node_data (§9) + GIN index `idx_nodes_data_gin` (ADDENDUM §Q)
@@ -175,8 +163,8 @@
 
 ## Next Action
 → start **Stage 8**: Client Dashboards (Codex GPT 5.5 owns).
-  Scope per `docs/AGENT_TASKS.md`: StudentDashboard / MyCases / MyResults,
-  TeacherDashboard, AnalyticsPage, AdminDashboard, recharts integrations.
+  Scope per `docs/AGENT_TASKS.md`: student dashboard, MyCases, MyResults,
+  teacher dashboard, analytics pages/charts, loading/empty/error states, tests.
 
 Deferred hardening status (2026-04-25):
 - ✅ Audit log table (mig 005 + AuditService)

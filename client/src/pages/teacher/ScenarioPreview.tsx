@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import CasePlayer from '@/components/player/CasePlayer';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -110,8 +111,6 @@ export default function ScenarioPreview() {
   }
 
   const teacherScenario = scenario.data as TeacherScenarioFullOut;
-  const currentNode = teacherScenario.nodes[0];
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3">
@@ -125,19 +124,8 @@ export default function ScenarioPreview() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <main className="rounded-xl border border-border bg-bg p-6">
-          <p className="mb-2 text-sm text-fg-muted">Student view</p>
-          {currentNode ? (
-            <article className="space-y-3">
-              <Badge variant="info">{currentNode.type}</Badge>
-              <h2 className="text-xl font-semibold text-fg">{currentNode.title}</h2>
-              <p className="text-sm text-fg-muted">
-                This preview uses the same graph data as the student player, without persisting an attempt.
-              </p>
-            </article>
-          ) : (
-            <EmptyState icon="cases" title="Scenario graph is empty" />
-          )}
+        <main>
+          <CasePlayer previewScenario={teacherScenario} />
         </main>
         <Insights nodes={teacherScenario.nodes} edges={teacherScenario.edges} />
       </div>

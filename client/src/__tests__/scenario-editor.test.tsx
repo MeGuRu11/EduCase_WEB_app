@@ -1,4 +1,4 @@
-import type { DragEvent, MouseEvent, ReactNode } from 'react';
+import { act, type DragEvent, type MouseEvent, type ReactNode } from 'react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
@@ -355,9 +355,13 @@ describe('choice edge and auto-save', () => {
 
     renderHook(() => useAutoSave({ scenarioId: 7, saveGraph }));
 
-    await vi.advanceTimersByTimeAsync(29_999);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(29_999);
+    });
     expect(saveGraph).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
     expect(saveGraph).toHaveBeenCalledTimes(1);
     expect(useScenarioEditorStore.getState().isDirty).toBe(false);
     vi.useRealTimers();
