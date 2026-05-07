@@ -66,15 +66,15 @@ export function DecisionView({ node, feedback, onSubmit, onNext, isSubmitting }:
       {submitted && feedback ? (
         <div
           data-testid="decision-feedback"
-          data-correct={String(feedback.is_correct)}
+          data-correct={String(feedback.correct)}
           className={cn(
             'rounded-xl border p-4 text-sm',
-            feedback.is_correct
+            feedback.correct
               ? 'border-success bg-success/10 text-success'
               : 'border-danger bg-danger/10 text-danger',
           )}
         >
-          <p className="font-semibold">{feedback.feedback || (feedback.is_correct ? 'Верно' : 'Неверно')}</p>
+          <p className="font-semibold">{feedback.feedback || (feedback.correct ? 'Верно' : 'Неверно')}</p>
           <p>
             Баллы: {feedback.score}/{feedback.max_score}
           </p>

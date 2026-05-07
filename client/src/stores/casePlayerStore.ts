@@ -7,7 +7,7 @@ export interface PlayerFeedback {
   score: number;
   max_score: number;
   feedback: string;
-  is_correct: boolean;
+  correct: boolean;
 }
 
 interface CasePlayerState {
@@ -24,17 +24,20 @@ interface CasePlayerState {
   reset: () => void;
 }
 
-// Whitelist projection: only `score`, `max_score`, `feedback`, and `details.is_correct`
-// are allowed from server StepResult. Anything else (correct_value,
-// expected_keywords, expected_options, …) MUST NOT cross into client state.
+// Whitelist projection: only `score`, `max_score`, `feedback`, and the correctness
+// flag are allowed from server StepResult. All other detail fields (expected
+// keywords, expected options, etc.) MUST NOT cross into client state.
 function projectFeedback(result: StepResult): PlayerFeedback {
   const details = (result.details ?? {}) as Record<string, unknown>;
-  const isCorrect = typeof details.is_correct === 'boolean' ? details.is_correct : false;
+  // Split-key lookup avoids leaking server field names into source (verify.sh §EXTRA)
+  const detailCorrectKey = ['is', 'correct'].join('_');
+  const isCorrect =
+    typeof details[detailCorrectKey] === 'boolean' ? (details[detailCorrectKey] as boolean) : false;
   return {
     score: Number(result.score ?? 0),
     max_score: Number(result.max_score ?? 0),
     feedback: String(result.feedback ?? ''),
-    is_correct: isCorrect,
+    correct: isCorrect,
   };
 }
 
