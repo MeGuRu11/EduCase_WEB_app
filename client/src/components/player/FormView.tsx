@@ -109,14 +109,14 @@ export function FormView({ node, feedback, onSubmit, onNext, isSubmitting }: For
         {submitted && feedback ? (
           <div
             data-testid="form-feedback"
-            data-correct={String(feedback.is_correct)}
+            data-correct={String(feedback.correct)}
             className={
-              feedback.is_correct
+              feedback.correct
                 ? 'rounded-xl border border-success bg-success/10 p-3 text-sm text-success'
                 : 'rounded-xl border border-danger bg-danger/10 p-3 text-sm text-danger'
             }
           >
-            <p>{feedback.feedback || (feedback.is_correct ? 'Верно' : 'Неверно')}</p>
+            <p>{feedback.feedback || (feedback.correct ? 'Верно' : 'Неверно')}</p>
             <p>
               Баллы: {feedback.score}/{feedback.max_score}
             </p>
