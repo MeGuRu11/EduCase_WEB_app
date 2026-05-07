@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 # EpiCase is Docker-deployed; this pyproject.toml exists only to centralise
-# tooling config (pytest, ruff, mypy). See ADR-015 — server/ is the workspace
+# tooling config (pytest, ruff, mypy). See ADR-015 - server/ is the workspace
 # root; plain imports (`from config import ...`) are mandatory inside server/.
 
 [tool.pytest.ini_options]
@@ -58,7 +58,6 @@ ignore = [
     "RUF002",
     "RUF003",
     "S608",   # seed.py setval() uses hardcoded table names (false positive)
-    "UP046",  # PEP 695 generics — Pydantic 2.9.2 does not support this syntax
 ]
 
 [tool.ruff.lint.per-file-ignores]

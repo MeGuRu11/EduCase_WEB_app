@@ -424,6 +424,14 @@ describe('teacher scenario pages', () => {
   });
 
   it('shows preview mode banner and teacher-only insight labels', async () => {
+    let startedAttempts = 0;
+    server.use(
+      http.post('/api/attempts/start', () => {
+        startedAttempts += 1;
+        return HttpResponse.json({ error: 'preview must not start persisted attempts' }, { status: 500 });
+      }),
+    );
+
     renderWithProviders(
       <Routes>
         <Route path="/teacher/scenarios/:id/preview" element={<ScenarioPreview />} />
@@ -435,5 +443,6 @@ describe('teacher scenario pages', () => {
     expect(screen.getByText('Insights')).toBeInTheDocument();
     expect(screen.getByText('Correct value')).toBeInTheDocument();
     expect(screen.getByText('Hepatitis A')).toBeInTheDocument();
+    expect(startedAttempts).toBe(0);
   });
 });

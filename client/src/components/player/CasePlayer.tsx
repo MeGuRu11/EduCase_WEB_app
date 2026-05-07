@@ -5,7 +5,8 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useStartAttempt, useSubmitStep, useFinishAttempt } from '@/hooks/useAttempts';
 import { useCasePlayerStore } from '@/stores/casePlayerStore';
-import type { StepAction, StepSubmit } from '@/types/attempt';
+import type { StepAction, StepOut, StepSubmit } from '@/types/attempt';
+import type { EdgeOut, NodeOut, ScenarioFullOut } from '@/types/scenario';
 import { DataView } from './DataView';
 import { DecisionView } from './DecisionView';
 import { FormView } from './FormView';
@@ -13,12 +14,79 @@ import { TextInputView } from './TextInputView';
 import { ProgressBar } from './ProgressBar';
 import { ServerTimer } from './ServerTimer';
 
+const PREVIEW_ATTEMPT_ID = 0;
+
 export interface CasePlayerProps {
-  scenarioId: number;
+  scenarioId?: number;
+  previewScenario?: ScenarioFullOut;
 }
 
-export function CasePlayer({ scenarioId }: CasePlayerProps) {
+function findStartNode(scenario: ScenarioFullOut): NodeOut | null {
+  return scenario.nodes.find((node) => node.type === 'start') ?? scenario.nodes[0] ?? null;
+}
+
+function edgeTarget(scenario: ScenarioFullOut, edge: EdgeOut | undefined): NodeOut | null {
+  if (!edge) return null;
+  return scenario.nodes.find((node) => node.id === edge.target) ?? null;
+}
+
+function firstOutgoingEdge(scenario: ScenarioFullOut, nodeId: string): EdgeOut | undefined {
+  return scenario.edges.find((edge) => edge.source === nodeId);
+}
+
+function selectedDecisionEdge(
+  scenario: ScenarioFullOut,
+  nodeId: string,
+  answerData: Record<string, unknown>,
+): EdgeOut | undefined {
+  const selected = Array.isArray(answerData.option_ids) ? answerData.option_ids.map(String) : [];
+  const outgoing = scenario.edges.filter((edge) => edge.source === nodeId);
+  return (
+    outgoing.find((edge) => selected.includes(String(edge.data.option_id ?? ''))) ??
+    outgoing.find((edge) => selected.includes(edge.id)) ??
+    outgoing[0]
+  );
+}
+
+function previewNextNode(
+  scenario: ScenarioFullOut,
+  currentNode: NodeOut,
+  action: StepAction,
+  answerData: Record<string, unknown>,
+): NodeOut | null {
+  if (action === 'choose_option') {
+    return edgeTarget(scenario, selectedDecisionEdge(scenario, currentNode.id, answerData));
+  }
+  return edgeTarget(scenario, firstOutgoingEdge(scenario, currentNode.id));
+}
+
+function makePreviewStep(
+  scenario: ScenarioFullOut,
+  currentNode: NodeOut,
+  action: StepAction,
+  answerData: Record<string, unknown>,
+  pathSoFar: string[],
+): StepOut {
+  const nextNode = previewNextNode(scenario, currentNode, action, answerData);
+  const path = pathSoFar.includes(currentNode.id) ? [...pathSoFar] : [...pathSoFar, currentNode.id];
+  if (nextNode && !path.includes(nextNode.id)) path.push(nextNode.id);
+
+  return {
+    attempt_status: nextNode == null || nextNode.type === 'final' ? 'completed' : 'in_progress',
+    next_node: nextNode,
+    path_so_far: path,
+    step_result: {
+      details: {},
+      feedback: 'Preview step recorded locally.',
+      max_score: 0,
+      score: 0,
+    },
+  };
+}
+
+export function CasePlayer({ scenarioId, previewScenario }: CasePlayerProps) {
   const navigate = useNavigate();
+  const isPreview = previewScenario != null;
   const start = useStartAttempt();
   const attemptId = useCasePlayerStore((s) => s.attemptId);
   const currentNode = useCasePlayerStore((s) => s.currentNode);
@@ -30,12 +98,24 @@ export function CasePlayer({ scenarioId }: CasePlayerProps) {
   const advanceToPending = useCasePlayerStore((s) => s.advanceToPending);
   const clearFeedback = useCasePlayerStore((s) => s.clearFeedback);
 
-  const submitStep = useSubmitStep(attemptId);
-  const finish = useFinishAttempt(attemptId);
+  const submitStep = useSubmitStep(isPreview ? null : attemptId);
+  const finish = useFinishAttempt(isPreview ? null : attemptId);
 
-  const expiresAt = start.data?.expires_at ?? null;
+  const expiresAt = isPreview ? null : start.data?.expires_at ?? null;
 
   useEffect(() => {
+    if (!isPreview || !previewScenario) return;
+    const startNode = findStartNode(previewScenario);
+    if (!startNode) return;
+    setAttempt({
+      attemptId: PREVIEW_ATTEMPT_ID,
+      currentNode: startNode,
+      status: 'in_progress',
+    });
+  }, [isPreview, previewScenario, setAttempt]);
+
+  useEffect(() => {
+    if (isPreview || scenarioId == null) return;
     if (start.isPending || start.isSuccess || start.isError) return;
     start.mutate(
       { scenario_id: scenarioId },
@@ -49,8 +129,7 @@ export function CasePlayer({ scenarioId }: CasePlayerProps) {
         },
       },
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scenarioId]);
+  }, [isPreview, scenarioId, setAttempt, start]);
 
   const goToResult = useMemo(
     () => (id: number) => {
@@ -66,7 +145,16 @@ export function CasePlayer({ scenarioId }: CasePlayerProps) {
   };
 
   const submit = (action: StepAction, answer_data: Record<string, unknown>) => {
-    if (!currentNode || attemptId == null) return;
+    if (!currentNode) return;
+
+    if (isPreview && previewScenario) {
+      const previewStep = makePreviewStep(previewScenario, currentNode, action, answer_data, pathSoFar);
+      applyStep(previewStep);
+      if (action === 'view_data') advanceToPending();
+      return;
+    }
+
+    if (attemptId == null) return;
     const payload: StepSubmit = {
       node_id: currentNode.id,
       action,
@@ -82,7 +170,7 @@ export function CasePlayer({ scenarioId }: CasePlayerProps) {
   const advance = () => {
     if (!currentNode) return;
     if (status === 'completed') {
-      if (attemptId != null) goToResult(attemptId);
+      if (!isPreview && attemptId != null) goToResult(attemptId);
       return;
     }
     if (lastFeedback) {
@@ -96,10 +184,10 @@ export function CasePlayer({ scenarioId }: CasePlayerProps) {
     }
   };
 
-  if (start.isPending) {
+  if (!isPreview && start.isPending) {
     return <Skeleton rows={4} label="Loading case" />;
   }
-  if (start.isError || !currentNode) {
+  if ((!isPreview && start.isError) || !currentNode) {
     return (
       <EmptyState
         icon="warn"
@@ -115,10 +203,10 @@ export function CasePlayer({ scenarioId }: CasePlayerProps) {
     <div className="flex h-full flex-col gap-4">
       <header className="flex items-center justify-between rounded-xl border border-border bg-bg px-4 py-3">
         <div>
-          <p className="text-sm text-fg-muted">Case in progress</p>
+          <p className="text-sm text-fg-muted">{isPreview ? 'Preview in progress' : 'Case in progress'}</p>
           <p className="text-sm text-fg">Step {pathSoFar.length}</p>
         </div>
-        {attemptId != null ? (
+        {!isPreview && attemptId != null ? (
           <ServerTimer
             attemptId={attemptId}
             initialExpiresAt={expiresAt}
@@ -164,14 +252,16 @@ export function CasePlayer({ scenarioId }: CasePlayerProps) {
           />
         ) : currentNode.type === 'final' ? (
           <div className="space-y-3">
-            <p className="text-sm text-fg-muted">Кейс завершён.</p>
-            <button
-              type="button"
-              className="rounded bg-royal px-4 py-2 text-white"
-              onClick={() => attemptId != null && goToResult(attemptId)}
-            >
-              Перейти к результату
-            </button>
+            <p className="text-sm text-fg-muted">Case completed.</p>
+            {!isPreview ? (
+              <button
+                type="button"
+                className="rounded bg-royal px-4 py-2 text-white"
+                onClick={() => attemptId != null && goToResult(attemptId)}
+              >
+                Go to result
+              </button>
+            ) : null}
           </div>
         ) : null}
       </main>
