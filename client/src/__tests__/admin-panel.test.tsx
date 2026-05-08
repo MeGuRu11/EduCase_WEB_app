@@ -190,6 +190,40 @@ describe('Stage 9 admin panel', () => {
     expect(play).toHaveBeenCalledTimes(1);
   });
 
+  it('HealthWidget plays an alert on initial render when status is already error (must not be missed)', async () => {
+    const play = vi.fn().mockResolvedValue(undefined);
+    const AudioMock = vi.fn().mockImplementation(() => ({ play }));
+    vi.stubGlobal('Audio', AudioMock);
+    server.use(
+      http.get('/api/admin/health', () => HttpResponse.json(health('error'))),
+      http.get('/api/admin/logs', () => HttpResponse.json({ items: [errorLog], total: 1, page: 1, pages: 1, per_page: 5 })),
+    );
+
+    renderWithProviders(<HealthWidget />);
+    await waitFor(() => expect(screen.getByTestId('health-status')).toHaveAttribute('data-status', 'error'));
+    await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
+  });
+
+  it('HealthWidget plays an alert on warning→error escalation (status=error must not be missed)', async () => {
+    const play = vi.fn().mockResolvedValue(undefined);
+    const AudioMock = vi.fn().mockImplementation(() => ({ play }));
+    vi.stubGlobal('Audio', AudioMock);
+    const statuses: Array<'ok' | 'warning' | 'error'> = ['warning', 'error'];
+    server.use(
+      http.get('/api/admin/health', () => HttpResponse.json(health(statuses.shift() ?? 'error'))),
+      http.get('/api/admin/logs', () => HttpResponse.json({ items: [errorLog], total: 1, page: 1, pages: 1, per_page: 5 })),
+    );
+
+    const { queryClient } = renderWithProviders(<HealthWidget />);
+    await waitFor(() => expect(screen.getByTestId('health-status')).toHaveAttribute('data-status', 'warning'));
+    // initial warning may have alerted; reset for the warning→error assertion
+    play.mockClear();
+
+    await queryClient.invalidateQueries({ queryKey: ['admin', 'health'] });
+    await waitFor(() => expect(screen.getByTestId('health-status')).toHaveAttribute('data-status', 'error'));
+    await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
+  });
+
   it('UsersPage filters users and previews CSV upload errors by row number', async () => {
     useAdminHandlers('ok');
     server.use(

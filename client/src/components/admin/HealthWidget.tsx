@@ -36,9 +36,13 @@ export default function HealthWidget() {
     const nextStatus = health.data?.status;
     if (!nextStatus) return;
 
-    const movedToProblem = previousStatus.current === 'ok' && nextStatus !== 'ok';
+    // §ADR-011: status=error MUST never be missed — fires on initial render
+    // and on any escalation toward 'error', not only on ok→non-ok transitions.
+    // Rate limit (5 min) prevents repeated noise from the same incident.
+    const isErrorNow = nextStatus === 'error';
+    const becameProblem = previousStatus.current === 'ok' && nextStatus !== 'ok';
     const canAlert = Date.now() - lastAlertAt.current >= SOUND_RATE_LIMIT_MS;
-    if (movedToProblem && canAlert) {
+    if ((isErrorNow || becameProblem) && canAlert) {
       playAlert();
       lastAlertAt.current = Date.now();
     }
