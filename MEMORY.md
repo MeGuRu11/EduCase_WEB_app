@@ -1,10 +1,10 @@
 # EpiCase — Project Memory
 
 ## Last Updated
-- Date: 2026-05-03
+- Date: 2026-05-08
 - Agent: Codex GPT 5.5
-- Stage: STAGE 7 closed — Case Player
-        (183 backend tests green + 79 frontend tests green; ruff, tsc, vitest, verify clean)
+- Stage: STAGE 8 closed — Dashboards and analytics
+        (183 backend tests green + 95 frontend tests green; ruff, tsc, vitest, verify clean)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**
@@ -85,7 +85,7 @@
       to `/media/`, Decision/Form/TextInput feedback from server step responses,
       react-hook-form + zod UX validation, readonly path visualization, result
       page with score/status/steps/PDF print action, and 410 Gone redirect path.
-- [ ] STAGE 8 — Client: Dashboards (Codex GPT 5.5)
+- [x] STAGE 8 — Client: Dashboards (Codex GPT 5.5)
 - [ ] STAGE 9 — Client: Admin panel (Codex GPT 5.5)
 - [ ] STAGE 10 — Integration + deploy (Both)
 
@@ -162,9 +162,7 @@
   ScenarioFullOut sanitized and using computed teacher-only metadata keys.
 
 ## Next Action
-→ start **Stage 8**: Client Dashboards (Codex GPT 5.5 owns).
-  Scope per `docs/AGENT_TASKS.md`: student dashboard, MyCases, MyResults,
-  teacher dashboard, analytics pages/charts, loading/empty/error states, tests.
+→ start **Stage 9** only after user approval: admin pages/system operations per project plan.
 
 Deferred hardening status (2026-04-25):
 - ✅ Audit log table (mig 005 + AuditService)
@@ -181,6 +179,3 @@ Deferred hardening status (2026-04-25):
 - Implemented teacher dashboards: TeacherDashboard, AnalyticsPage with heatmap/distribution/ranking/weak-node tabs, GroupsPage.
 - Added analytics API/hooks and formatter utilities; added 12 Stage 8 frontend tests.
 - Verification: scripts/verify.sh green (183 pytest passed, 95 vitest passed, tsc/ruff clean, no answer leaks, no hardcoded client colors). Production build passed; Vite reports only the existing large chunk warning.
-
-## Next Action
--> start Stage 9 only after user approval: admin pages/system operations per project plan.
