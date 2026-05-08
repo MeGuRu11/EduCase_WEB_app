@@ -20,6 +20,7 @@ interface SessionInput {
 
 export interface AuthState extends StoredAuth {
   isAuthenticated: boolean;
+  maintenanceMode: boolean;
   hydrate: () => void;
   setSession: (session: SessionInput) => void;
   setAccessToken: (accessToken: string) => void;
@@ -27,6 +28,7 @@ export interface AuthState extends StoredAuth {
   refresh: () => Promise<string | null>;
   logout: () => void;
   markPasswordChanged: () => void;
+  setMaintenanceMode: (enabled: boolean) => void;
 }
 
 function readStoredAuth(): StoredAuth {
@@ -61,6 +63,7 @@ export const useAuthStore = create<AuthState>()(
   immer((set, get) => ({
     ...initial,
     isAuthenticated: Boolean(initial.user && initial.accessToken),
+    maintenanceMode: false,
 
     hydrate: () => {
       const stored = readStoredAuth();
@@ -126,6 +129,7 @@ export const useAuthStore = create<AuthState>()(
         state.accessToken = null;
         state.refreshToken = null;
         state.isAuthenticated = false;
+        state.maintenanceMode = false;
       });
     },
 
@@ -137,6 +141,12 @@ export const useAuthStore = create<AuthState>()(
         user: { ...user, must_change_password: false },
         accessToken: get().accessToken ?? '',
         refreshToken: get().refreshToken,
+      });
+    },
+
+    setMaintenanceMode: (enabled) => {
+      set((state) => {
+        state.maintenanceMode = enabled;
       });
     },
   })),

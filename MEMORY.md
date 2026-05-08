@@ -3,8 +3,8 @@
 ## Last Updated
 - Date: 2026-05-08
 - Agent: Codex GPT 5.5
-- Stage: STAGE 8 closed — Dashboards and analytics
-        (183 backend tests green + 95 frontend tests green; ruff, tsc, vitest, verify clean)
+- Stage: STAGE 9 closed — Admin panel
+        (183 backend tests green + 105 frontend tests green; ruff, tsc, vitest, verify clean)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**
@@ -86,7 +86,7 @@
       react-hook-form + zod UX validation, readonly path visualization, result
       page with score/status/steps/PDF print action, and 410 Gone redirect path.
 - [x] STAGE 8 — Client: Dashboards (Codex GPT 5.5)
-- [ ] STAGE 9 — Client: Admin panel (Codex GPT 5.5)
+- [x] STAGE 9 — Client: Admin panel (Codex GPT 5.5)
 - [ ] STAGE 10 — Integration + deploy (Both)
 
 ## Test Status
@@ -114,7 +114,7 @@
     §T.2 leak check/concurrent start/§B.3.4 partial-UNIQUE/403 for unassigned/
     +2 retro-audit regressions: teacher-attempt-access, duplicate-preserves-option_id)
   - test_edge_cases.py: 16 (4× EC-AUTH + 5× EC-SCENARIO + 7× EC-ATTEMPT-01..07)
-- Frontend: 79 tests / 79 passed
+- Frontend: 105 tests / 105 passed
   - ui.test.tsx: 23 (Icon, Button, Card, Badge, Input, Modal,
     ConfirmDialog, EmptyState, LoadingSpinner, Skeleton, Table, Toast)
   - auth-routing.test.tsx: 13 (LoginPage, ChangePasswordPage, ProtectedRoute
@@ -124,10 +124,12 @@
   - scenario-editor.test.tsx: 21 (ScenarioCanvas add/connect/delete,
     NodePalette drag payload, NodeInspector 6 modes, ChoiceEdge states,
     autosave 30s debounce, beforeunload, MyScenarios, editor shell, preview)
-  - case-player.test.tsx: 15 (ServerTimer thresholds/polling/auto-finish,
+  - case-player.test.tsx: 19 (ServerTimer thresholds/polling/auto-finish,
     DOMPurify DataView policy, DecisionView feedback flow, FormView zod
     validation and field rendering, TextInput min length + matched keywords,
     F5 resume, 410 Gone redirect, FinalView, CaseResultPage)
+  - dashboards-analytics.test.tsx: 12 (Stage 8 student/teacher dashboards, analytics heatmap/tabs/export)
+  - admin-panel.test.tsx: 10 (Stage 9 AdminDashboard HealthWidget, CSV import, triple-confirm restore, maintenance banner, settings)
 
 ## Decisions (DO NOT CHANGE)
 - JSONB for node_data (§9) + GIN index `idx_nodes_data_gin` (ADDENDUM §Q)
@@ -162,7 +164,7 @@
   ScenarioFullOut sanitized and using computed teacher-only metadata keys.
 
 ## Next Action
-→ start **Stage 9** only after user approval: admin pages/system operations per project plan.
+→ start **Stage 10** only after user approval: integration + deploy per project plan.
 
 Deferred hardening status (2026-04-25):
 - ✅ Audit log table (mig 005 + AuditService)
@@ -178,4 +180,9 @@ Deferred hardening status (2026-04-25):
 - Implemented student dashboards: StudentDashboard, MyCases, MyResults.
 - Implemented teacher dashboards: TeacherDashboard, AnalyticsPage with heatmap/distribution/ranking/weak-node tabs, GroupsPage.
 - Added analytics API/hooks and formatter utilities; added 12 Stage 8 frontend tests.
-- Verification: scripts/verify.sh green (183 pytest passed, 95 vitest passed, tsc/ruff clean, no answer leaks, no hardcoded client colors). Production build passed; Vite reports only the existing large chunk warning.
+- Verification: scripts/verify.sh green (183 pytest passed, 95 vitest passed, tsc/ruff clean, no answer leaks, no hardcoded client colors). Production build passed; Vite reports only the existing large chunk warning.`n`n## Stage 9 Completion (2026-05-08)
+- Implemented admin dashboard with KPI tiles, HealthWidget polling, recent ERROR logs and audible warning/error alert rate-limited to 1 per 5 minutes.
+- Implemented UsersPage with search/role/status/group filters, create/edit/reset/block/delete-safe actions, CSV template/download, preview and per-row import errors.
+- Implemented SystemPage with sysinfo, backups, logs CSV export and restore triple-confirm: first ConfirmDialog, exact filename textbox, final danger ConfirmDialog before POST /api/admin/restore/{filename}.
+- Added global maintenance banner state/polling, SettingsPage with PUT /api/admin/settings and unsaved changes warning, admin API/hooks/types, /api/admin/health backend alias, and alert sound asset.
+- Verification: scripts/verify.sh green (183 pytest passed, 105 vitest passed, tsc/ruff clean, no answer leaks, no hardcoded client colors). Production build passed; Vite reports only the existing large chunk warning.

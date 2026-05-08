@@ -12,36 +12,54 @@ import type {
 
 export interface UserListParams extends PaginationParams {
   role?: string | null;
+  status?: 'active' | 'locked' | 'all' | null;
+  group_id?: number | 'all' | null;
+}
+
+function normalizeListParams(params: UserListParams) {
+  return {
+    role: params.role && params.role !== 'all' ? params.role : undefined,
+    search: params.search || undefined,
+    page: params.page ?? 1,
+    per_page: params.per_page ?? 20,
+  };
 }
 
 export const usersApi = {
-  list(params: UserListParams = {}) {
-    return api.get<PaginatedResponse<UserOut>>('/users/', { params });
+  async list(params: UserListParams = {}) {
+    const response = await api.get<PaginatedResponse<UserOut>>('/users/', { params: normalizeListParams(params) });
+    return response.data;
   },
 
-  create(payload: UserCreate) {
-    return api.post<UserOut>('/users/', payload);
+  async create(payload: UserCreate) {
+    const response = await api.post<UserOut>('/users/', payload);
+    return response.data;
   },
 
-  update(userId: number, payload: UserUpdate) {
-    return api.patch<UserOut>(`/users/${userId}`, payload);
+  async update(userId: number, payload: UserUpdate) {
+    const response = await api.patch<UserOut>(`/users/${userId}`, payload);
+    return response.data;
   },
 
-  setStatus(userId: number, payload: UserStatusUpdate) {
-    return api.put<UserOut>(`/users/${userId}/status`, payload);
+  async setStatus(userId: number, payload: UserStatusUpdate) {
+    const response = await api.put<UserOut>(`/users/${userId}/status`, payload);
+    return response.data;
   },
 
-  resetPassword(userId: number, payload: ResetPasswordRequest) {
-    return api.post<{ status: string }>(`/users/${userId}/reset-password`, payload);
+  async resetPassword(userId: number, payload: ResetPasswordRequest) {
+    const response = await api.post<{ status: string }>(`/users/${userId}/reset-password`, payload);
+    return response.data;
   },
 
-  changePassword(payload: ChangePasswordRequest) {
-    return api.post<{ status: string }>('/users/me/change-password', payload);
+  async changePassword(payload: ChangePasswordRequest) {
+    const response = await api.post<{ status: string }>('/users/me/change-password', payload);
+    return response.data;
   },
 
-  bulkCsv(file: File) {
+  async bulkCsv(file: File) {
     const data = new FormData();
     data.append('file', file);
-    return api.post<UserBulkResult>('/users/bulk-csv', data);
+    const response = await api.post<UserBulkResult>('/users/bulk-csv', data);
+    return response.data;
   },
 };

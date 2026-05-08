@@ -163,6 +163,15 @@ def list_logs(
     )
 
 
+
+@router.get(
+    "/health",
+    response_model=HealthCheckOut,
+    dependencies=[Depends(require_role(RoleName.ADMIN))],
+)
+def admin_health(db: Session = Depends(get_db)) -> HealthCheckOut:
+    payload = AdminService.health(db)
+    return HealthCheckOut(**payload)
 # ─── public health (ADR-010) ────────────────────────────────────────────────
 
 
