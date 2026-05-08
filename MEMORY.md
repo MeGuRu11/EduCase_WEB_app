@@ -175,3 +175,12 @@ Deferred hardening status (2026-04-25):
 - ⏳ Refresh-token rotation — Stage 10
 - ⏳ Stream bulk-CSV size check — nginx 5 МБ cap mitigates; defer
 - ⏳ At-rest DB encryption (ADR-013) — V2
+
+## Stage 8 Completion (2026-05-08)
+- Implemented student dashboards: StudentDashboard, MyCases, MyResults.
+- Implemented teacher dashboards: TeacherDashboard, AnalyticsPage with heatmap/distribution/ranking/weak-node tabs, GroupsPage.
+- Added analytics API/hooks and formatter utilities; added 12 Stage 8 frontend tests.
+- Verification: scripts/verify.sh green (183 pytest passed, 95 vitest passed, tsc/ruff clean, no answer leaks, no hardcoded client colors). Production build passed; Vite reports only the existing large chunk warning.
+
+## Next Action
+-> start Stage 9 only after user approval: admin pages/system operations per project plan.

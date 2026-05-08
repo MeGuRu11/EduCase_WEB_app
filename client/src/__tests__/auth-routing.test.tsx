@@ -41,6 +41,20 @@ const teacher: UserOut = {
 
 beforeEach(() => {
   useAuthStore.getState().logout();
+  server.use(
+    http.get('/api/analytics/student/dashboard', () =>
+      HttpResponse.json({
+        total_scenarios: 0,
+        completed_scenarios: 0,
+        in_progress_scenarios: 0,
+        avg_score: 0,
+        best_score: 0,
+        total_time_hours: 0,
+        recent_attempts: [],
+      }),
+    ),
+    http.get('/api/analytics/teacher/scenarios', () => HttpResponse.json([])),
+  );
 });
 
 describe('auth pages and routing', () => {

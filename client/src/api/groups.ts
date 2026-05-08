@@ -8,31 +8,38 @@ import type {
 } from '@/types/group';
 
 export const groupsApi = {
-  list() {
-    return api.get<GroupOut[]>('/groups/');
+  async list() {
+    const response = await api.get<GroupOut[]>('/groups/');
+    return response.data;
   },
 
-  create(payload: GroupCreate) {
-    return api.post<GroupOut>('/groups/', payload);
+  async create(payload: GroupCreate) {
+    const response = await api.post<GroupOut>('/groups/', payload);
+    return response.data;
   },
 
-  update(groupId: number, payload: GroupUpdate) {
-    return api.patch<GroupOut>(`/groups/${groupId}`, payload);
+  async update(groupId: number, payload: GroupUpdate) {
+    const response = await api.patch<GroupOut>(`/groups/${groupId}`, payload);
+    return response.data;
   },
 
-  addMember(groupId: number, payload: GroupMemberAdd) {
-    return api.post<{ status: string }>(`/groups/${groupId}/members`, payload);
+  async addMember(groupId: number, payload: GroupMemberAdd) {
+    const response = await api.post<{ status: string }>(`/groups/${groupId}/members`, payload);
+    return response.data;
   },
 
-  removeMember(groupId: number, userId: number) {
-    return api.delete<{ status: string }>(`/groups/${groupId}/members/${userId}`);
+  async removeMember(groupId: number, userId: number) {
+    const response = await api.delete<{ status: string }>(`/groups/${groupId}/members/${userId}`);
+    return response.data;
   },
 
-  assignTeacher(groupId: number, payload: GroupTeacherAssign) {
-    return api.post<{ status: string }>(`/groups/${groupId}/assign-teacher`, payload);
+  async assignTeacher(groupId: number, payload: GroupTeacherAssign) {
+    const response = await api.post<{ status: string }>(`/groups/${groupId}/assign-teacher`, payload);
+    return response.data;
   },
 
-  removeTeacher(groupId: number, teacherId: number) {
-    return api.delete<{ status: string }>(`/groups/${groupId}/teachers/${teacherId}`);
+  async removeTeacher(groupId: number, teacherId: number) {
+    const response = await api.delete<{ status: string }>(`/groups/${groupId}/teachers/${teacherId}`);
+    return response.data;
   },
 };
