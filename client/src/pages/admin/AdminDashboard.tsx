@@ -30,7 +30,7 @@ export default function AdminDashboard() {
 
   if (stats.isError || !stats.data) {
     return (
-      <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger">
+      <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">
         Не удалось загрузить admin dashboard.
       </div>
     );
@@ -42,7 +42,7 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-danger">Admin dashboard</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-danger-ink">Admin dashboard</p>
         <h1 className="text-3xl font-bold text-fg">Панель администратора</h1>
         <p className="mt-1 text-sm text-fg-muted">Контроль пользователей, состояния системы и операционных рисков.</p>
       </header>

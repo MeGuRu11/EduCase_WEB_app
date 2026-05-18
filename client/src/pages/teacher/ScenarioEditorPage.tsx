@@ -11,10 +11,10 @@ import { useSaveScenarioGraph, useScenario } from '@/hooks/useScenarios';
 import { useScenarioEditorStore } from '@/stores/scenarioEditorStore';
 
 function SaveIndicator({ isSaving, lastSaveAt }: { isSaving: boolean; lastSaveAt: string | null }) {
-  if (isSaving) return <span className="text-sm font-medium text-warning">● Saving...</span>;
+  if (isSaving) return <span className="text-sm font-medium text-warning-ink">● Saving...</span>;
   if (!lastSaveAt) return <span className="text-sm text-fg-muted">No saved changes yet</span>;
   return (
-    <span className="text-sm font-medium text-success">
+    <span className="text-sm font-medium text-success-ink">
       ✓ Saved {new Date(lastSaveAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
     </span>
   );
@@ -55,7 +55,7 @@ export default function ScenarioEditorPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] flex-col gap-4">
+    <div className="flex h-[calc(100vh-8rem)] flex-col gap-4">
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-bg px-4 py-3">
         <div>
           <p className="text-sm text-fg-muted">Scenario editor</p>
@@ -63,7 +63,7 @@ export default function ScenarioEditorPage() {
         </div>
         <div className="flex items-center gap-3">
           <SaveIndicator isSaving={isSaving || saveMutation.isPending} lastSaveAt={lastSaveAt} />
-          {autoSaveError ? <span className="text-sm text-danger">{autoSaveError}</span> : null}
+          {autoSaveError ? <span className="text-sm text-danger-ink">{autoSaveError}</span> : null}
           <Button variant="secondary" onClick={onManualSave} isLoading={saveMutation.isPending}>
             Save
           </Button>

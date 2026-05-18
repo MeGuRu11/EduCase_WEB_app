@@ -8,12 +8,12 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const variants: Record<BadgeVariant, string> = {
-  success: 'bg-success/10 text-success',
-  warning: 'bg-warning/10 text-warning',
-  danger: 'bg-danger/10 text-danger',
-  info: 'bg-royal/10 text-royal',
+  success: 'bg-success/10 text-success-ink',
+  warning: 'bg-warning/10 text-warning-ink',
+  danger: 'bg-danger/10 text-danger-ink',
+  info: 'bg-royal/10 text-royal-ink',
   neutral: 'bg-lavender/40 text-fg-muted',
-  accent: 'bg-purple/10 text-purple',
+  accent: 'bg-purple/10 text-purple-ink',
 };
 
 export function Badge({ children, className, variant = 'neutral', ...props }: BadgeProps) {

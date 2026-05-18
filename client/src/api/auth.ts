@@ -1,15 +1,11 @@
 import api from './client';
-import type { LoginRequest, LogoutResponse, RefreshRequest, TokenResponse } from '@/types/auth';
+import { authSessionApi } from './authSession';
+import type { LogoutResponse } from '@/types/auth';
 import type { UserOut } from '@/types/user';
 
 export const authApi = {
-  login(payload: LoginRequest) {
-    return api.post<TokenResponse>('/auth/login', payload);
-  },
-
-  refresh(payload: RefreshRequest) {
-    return api.post<TokenResponse>('/auth/refresh', payload);
-  },
+  login: authSessionApi.login,
+  refresh: authSessionApi.refresh,
 
   logout() {
     return api.post<LogoutResponse>('/auth/logout');

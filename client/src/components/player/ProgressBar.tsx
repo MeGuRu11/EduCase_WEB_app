@@ -15,7 +15,7 @@ export function ProgressBar({ current, total }: ProgressBarProps) {
       aria-valuemin={0}
       aria-valuemax={100}
     >
-      <div className="h-full bg-royal transition-all" style={{ width: `${pct}%` }} />
+      <div className="h-full bg-royal-ink transition-all" style={{ width: `${pct}%` }} />
     </div>
   );
 }

@@ -34,7 +34,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {error ? (
-          <p id={descriptionId} role="alert" className="text-xs text-danger">
+          <p id={descriptionId} role="alert" className="text-xs text-danger-ink">
             {error}
           </p>
         ) : hint ? (

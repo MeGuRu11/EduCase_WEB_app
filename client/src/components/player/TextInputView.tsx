@@ -42,8 +42,8 @@ export function TextInputView({ node, feedback, onSubmit, onNext, isSubmitting }
           data-correct={String(feedback.correct)}
           className={
             feedback.correct
-              ? 'rounded-xl border border-success bg-success/10 p-3 text-sm text-success'
-              : 'rounded-xl border border-danger bg-danger/10 p-3 text-sm text-danger'
+              ? 'rounded-xl border border-success bg-success/10 p-3 text-sm text-success-ink'
+              : 'rounded-xl border border-danger bg-danger/10 p-3 text-sm text-danger-ink'
           }
         >
           <p>{feedback.feedback || (feedback.correct ? 'Верно' : 'Неверно')}</p>

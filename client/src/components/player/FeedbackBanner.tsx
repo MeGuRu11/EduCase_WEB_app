@@ -22,9 +22,9 @@ export function FeedbackBanner({ result }: FeedbackBannerProps) {
       role="status"
       className={cn(
         'flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4',
-        tone === 'success' && 'border-success/30 bg-success/10 text-success',
-        tone === 'danger' && 'border-danger/30 bg-danger/10 text-danger',
-        tone === 'warning' && 'border-warning/30 bg-warning/10 text-warning',
+        tone === 'success' && 'border-success/30 bg-success/10 text-success-ink',
+        tone === 'danger' && 'border-danger/30 bg-danger/10 text-danger-ink',
+        tone === 'warning' && 'border-warning/30 bg-warning/10 text-warning-ink',
       )}
     >
       <div>

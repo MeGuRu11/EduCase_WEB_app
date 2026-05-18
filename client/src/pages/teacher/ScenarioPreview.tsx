@@ -50,7 +50,7 @@ function Insights({ nodes, edges }: { nodes: TeacherPreviewNode[]; edges: Teache
   return (
     <aside className="space-y-4 rounded-xl border border-warning/30 bg-warning/10 p-4">
       <div>
-        <p className="text-sm font-semibold text-warning">Insights</p>
+        <p className="text-sm font-semibold text-warning-ink">Insights</p>
         <p className="text-xs text-fg-muted">Teacher-only answer metadata for preview.</p>
       </div>
       <div className="space-y-2">
@@ -115,7 +115,7 @@ export default function ScenarioPreview() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3">
         <div>
-          <p className="text-sm font-semibold text-warning">Preview mode - answers are not saved</p>
+          <p className="text-sm font-semibold text-warning-ink">Preview mode - answers are not saved</p>
           <h1 className="text-2xl font-bold text-fg">{scenario.data.title}</h1>
         </div>
         <Button variant="secondary" onClick={() => navigate(`/teacher/scenarios/${id}/edit`)}>

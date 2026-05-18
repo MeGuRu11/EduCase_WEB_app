@@ -12,9 +12,9 @@ import { formatDateTime } from '@/utils/formatters';
 const SOUND_RATE_LIMIT_MS = 5 * 60 * 1000;
 
 const statusMeta: Record<HealthStatus, { label: string; className: string; badge: 'success' | 'warning' | 'danger' }> = {
-  ok: { label: 'Система в норме', className: 'border-success/30 bg-success/10 text-success', badge: 'success' },
-  warning: { label: 'Требует внимания', className: 'border-warning/30 bg-warning/10 text-warning', badge: 'warning' },
-  error: { label: 'Критическая ошибка', className: 'border-danger/30 bg-danger/10 text-danger', badge: 'danger' },
+  ok: { label: 'Система в норме', className: 'border-success/30 bg-success/10 text-success-ink', badge: 'success' },
+  warning: { label: 'Требует внимания', className: 'border-warning/30 bg-warning/10 text-warning-ink', badge: 'warning' },
+  error: { label: 'Критическая ошибка', className: 'border-danger/30 bg-danger/10 text-danger-ink', badge: 'danger' },
 };
 
 function playAlert() {
@@ -55,7 +55,7 @@ export default function HealthWidget() {
     return (
       <div data-testid="health-widget">
         <Card title="HealthWidget">
-          <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
+          <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-sm text-danger-ink">
             Не удалось загрузить состояние системы.
           </div>
         </Card>
@@ -98,7 +98,7 @@ export default function HealthWidget() {
           <div className="rounded-lg border border-border bg-surface p-4">
             <div className="flex items-center justify-between gap-3">
               <h3 className="font-semibold text-fg">Последние ERROR-логи</h3>
-              <Link className="focus-ring rounded text-sm text-royal hover:text-cyan" to="/admin/system?tab=logs">
+              <Link className="focus-ring rounded text-sm text-royal-ink hover:text-cyan-ink" to="/admin/system?tab=logs">
                 Все логи
               </Link>
             </div>

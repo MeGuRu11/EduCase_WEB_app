@@ -15,14 +15,14 @@ interface NodeViewProps {
 }
 
 const tones: Record<NodeViewProps['tone'], string> = {
-  danger: 'border-danger/40 bg-danger/15 text-danger',
-  data: 'border-sky/40 bg-sky/20 text-cyan',
-  decision: 'border-royal/30 bg-royal/10 text-royal',
-  form: 'border-purple/30 bg-purple/10 text-purple',
-  start: 'border-success/30 bg-success/10 text-success',
-  success: 'border-success/40 bg-success/15 text-success',
-  text: 'border-cyan/40 bg-cyan/15 text-cyan',
-  warning: 'border-warning/40 bg-warning/15 text-warning',
+  danger: 'border-danger/40 bg-danger/15 text-danger-ink',
+  data: 'border-sky/40 bg-sky/20 text-cyan-ink',
+  decision: 'border-royal/30 bg-royal/10 text-royal-ink',
+  form: 'border-purple/30 bg-purple/10 text-purple-ink',
+  start: 'border-success/30 bg-success/10 text-success-ink',
+  success: 'border-success/40 bg-success/15 text-success-ink',
+  text: 'border-cyan/40 bg-cyan/15 text-cyan-ink',
+  warning: 'border-warning/40 bg-warning/15 text-warning-ink',
 };
 
 export function NodeView({

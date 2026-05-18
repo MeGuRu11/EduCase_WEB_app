@@ -104,18 +104,18 @@ export default function SystemPage() {
   if (isLoading) return <Skeleton rows={6} label="Loading table" />;
 
   if (hasError || !sysinfo.data) {
-    return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger">Не удалось загрузить системную панель.</div>;
+    return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">Не удалось загрузить системную панель.</div>;
   }
 
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-danger">Admin system</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-danger-ink">Admin system</p>
         <h1 className="text-3xl font-bold text-fg">Система</h1>
         <p className="mt-1 text-sm text-fg-muted">Sysinfo, backups, restore orchestration и журналы.</p>
       </header>
 
-      <section className="grid gap-4 md:grid-cols-5" aria-label="Сведения о системе">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5" aria-label="Сведения о системе">
         <Card className="p-5"><p className="text-sm text-fg-muted">Размер БД</p><p className="mt-2 text-2xl font-bold text-fg">{sysinfo.data.db_size_mb.toFixed(1)} МБ</p></Card>
         <Card className="p-5"><p className="text-sm text-fg-muted">Версия</p><p className="mt-2 text-2xl font-bold text-fg">{sysinfo.data.version}</p></Card>
         <Card className="p-5"><p className="text-sm text-fg-muted">Python</p><p className="mt-2 text-2xl font-bold text-fg">{sysinfo.data.python_version}</p></Card>
@@ -141,7 +141,7 @@ export default function SystemPage() {
               header: 'Действия',
               render: (backup) => (
                 <div className="flex flex-wrap gap-2">
-                  <a className="focus-ring inline-flex h-8 items-center rounded px-3 text-sm text-royal hover:bg-lavender/30" href={`/api/admin/backup/${encodeURIComponent(backup.filename)}`}>Скачать</a>
+                  <a className="focus-ring inline-flex h-8 items-center rounded px-3 text-sm text-royal-ink hover:bg-lavender/30" href={`/api/admin/backup/${encodeURIComponent(backup.filename)}`}>Скачать</a>
                   <Button size="sm" variant="danger" onClick={() => startRestore(backup)}>Восстановить {backup.filename}</Button>
                   <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(backup)}>Удалить</Button>
                 </div>

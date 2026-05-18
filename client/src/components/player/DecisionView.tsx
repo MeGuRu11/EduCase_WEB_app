@@ -70,8 +70,8 @@ export function DecisionView({ node, feedback, onSubmit, onNext, isSubmitting }:
           className={cn(
             'rounded-xl border p-4 text-sm',
             feedback.correct
-              ? 'border-success bg-success/10 text-success'
-              : 'border-danger bg-danger/10 text-danger',
+              ? 'border-success bg-success/10 text-success-ink'
+              : 'border-danger bg-danger/10 text-danger-ink',
           )}
         >
           <p className="font-semibold">{feedback.feedback || (feedback.correct ? 'Верно' : 'Неверно')}</p>

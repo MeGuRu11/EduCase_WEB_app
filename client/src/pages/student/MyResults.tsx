@@ -90,7 +90,7 @@ export default function MyResults() {
       key: 'action',
       header: '',
       render: (row) => (
-        <Link className="font-semibold text-royal hover:text-cyan" to={`/student/attempts/${row.id}/result`}>
+        <Link className="font-semibold text-royal-ink hover:text-cyan-ink" to={`/student/attempts/${row.id}/result`}>
           Открыть
         </Link>
       ),
@@ -100,7 +100,7 @@ export default function MyResults() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-royal">S-5 Results history</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-royal-ink">S-5 Results history</p>
         <h1 className="text-3xl font-bold text-fg">Мои результаты</h1>
       </header>
 

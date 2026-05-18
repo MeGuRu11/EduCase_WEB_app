@@ -28,7 +28,13 @@ class ResizeObserverMock {
 
 globalThis.ResizeObserver = ResizeObserverMock as typeof ResizeObserver;
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: 'error' });
+  Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+    configurable: true,
+    value: vi.fn().mockResolvedValue(undefined),
+  });
+});
 
 afterEach(() => {
   cleanup();

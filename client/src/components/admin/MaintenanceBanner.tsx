@@ -6,7 +6,7 @@ export default function MaintenanceBanner() {
   if (!maintenanceMode) return null;
 
   return (
-    <div role="alert" className="bg-danger px-6 py-3 text-center text-sm font-semibold text-white">
+    <div role="alert" className="bg-danger-ink px-6 py-3 text-center text-sm font-semibold text-white">
       ⚠ Идёт восстановление системы. Сохраните свои данные и обновите страницу через 5 минут.
     </div>
   );

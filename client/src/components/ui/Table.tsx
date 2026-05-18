@@ -33,15 +33,15 @@ export function Table<T>({
 
   if (error) {
     return (
-      <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
+      <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-sm text-danger-ink">
         {error}
       </div>
     );
   }
 
   return (
-    <div className={cn('overflow-hidden rounded-lg border border-border bg-bg', className)}>
-      <table className="w-full text-sm">
+    <div className={cn('overflow-x-auto rounded-lg border border-border bg-bg', className)}>
+      <table className="min-w-full text-sm">
         <thead>
           <tr className="border-b border-border">
             {columns.map((column) => (

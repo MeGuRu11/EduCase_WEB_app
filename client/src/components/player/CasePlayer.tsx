@@ -256,7 +256,7 @@ export function CasePlayer({ scenarioId, previewScenario }: CasePlayerProps) {
             {!isPreview ? (
               <button
                 type="button"
-                className="rounded bg-royal px-4 py-2 text-white"
+                className="rounded bg-royal-ink px-4 py-2 text-white"
                 onClick={() => attemptId != null && goToResult(attemptId)}
               >
                 Go to result

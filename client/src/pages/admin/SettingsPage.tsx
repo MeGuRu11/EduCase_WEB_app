@@ -73,19 +73,19 @@ export default function SettingsPage() {
   if (settings.isLoading) return <Skeleton rows={5} label="Loading table" />;
 
   if (settings.isError || !settings.data) {
-    return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger">Не удалось загрузить настройки.</div>;
+    return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">Не удалось загрузить настройки.</div>;
   }
 
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-danger">Admin settings</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-danger-ink">Admin settings</p>
         <h1 className="text-3xl font-bold text-fg">Настройки</h1>
         <p className="mt-1 text-sm text-fg-muted">Параметры учреждения, сессий, загрузок и retention бэкапов.</p>
       </header>
 
       {isDirty ? (
-        <div role="alert" className="rounded border border-warning/30 bg-warning/10 p-4 text-sm font-medium text-warning">
+        <div role="alert" className="rounded border border-warning/30 bg-warning/10 p-4 text-sm font-medium text-warning-ink">
           Есть несохранённые изменения
         </div>
       ) : null}

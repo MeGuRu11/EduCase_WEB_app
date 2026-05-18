@@ -22,7 +22,7 @@ export default function NotFoundPage() {
           </Button>
           <Link
             to={homeUrl}
-            className="focus-ring inline-flex h-10 items-center justify-center rounded bg-royal px-4 text-sm font-medium text-white transition-colors hover:bg-cyan"
+            className="focus-ring inline-flex h-10 items-center justify-center rounded bg-royal-ink px-4 text-sm font-medium text-white transition-colors hover:bg-cyan-ink"
           >
             На главную
           </Link>

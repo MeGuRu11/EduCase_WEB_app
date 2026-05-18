@@ -186,7 +186,7 @@ export default function UsersPage() {
   if (users.isLoading || groups.isLoading) return <Skeleton rows={6} label="Loading table" />;
 
   if (users.isError || groups.isError) {
-    return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger">Не удалось загрузить пользователей.</div>;
+    return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">Не удалось загрузить пользователей.</div>;
   }
 
   const groupOptions = groups.data ?? [];
@@ -195,7 +195,7 @@ export default function UsersPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-danger">Admin users</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-danger-ink">Admin users</p>
           <h1 className="text-3xl font-bold text-fg">Пользователи</h1>
           <p className="mt-1 text-sm text-fg-muted">Поиск, фильтры, CSV-импорт и административные действия.</p>
         </div>
@@ -296,7 +296,7 @@ export default function UsersPage() {
         footer={<><Button variant="secondary" onClick={() => setCsvOpen(false)}>Отмена</Button><Button onClick={() => csvFile && bulkCsv.mutate(csvFile)} disabled={!csvFile} isLoading={bulkCsv.isPending}>Загрузить CSV</Button></>}
       >
         <div className="space-y-4">
-          <a className="focus-ring inline-flex rounded text-sm font-medium text-royal hover:text-cyan" href={`data:text/csv;charset=utf-8,${encodeURIComponent(templateCsv)}`} download="users_template.csv">
+          <a className="focus-ring inline-flex rounded text-sm font-medium text-royal-ink hover:text-cyan-ink" href={`data:text/csv;charset=utf-8,${encodeURIComponent(templateCsv)}`} download="users_template.csv">
             Скачать шаблон CSV
           </a>
           <label className="block space-y-2 rounded-lg border border-dashed border-border bg-surface p-4 text-sm text-fg">
@@ -320,7 +320,7 @@ export default function UsersPage() {
             </div>
           ) : null}
           {csvErrors.length ? (
-            <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
+            <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-sm text-danger-ink">
               <p className="font-semibold">Ошибки импорта</p>
               <ul className="mt-2 space-y-1">
                 {csvErrors.map((error, index) => <li key={`${error.row}-${index}`}>{`Строка ${error.row}: ${error.detail}`}</li>)}

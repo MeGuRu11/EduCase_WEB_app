@@ -37,7 +37,7 @@ export default function MyScenarios() {
       key: 'title',
       render: (row) => (
         <div>
-          <Link to={`/teacher/scenarios/${row.id}/edit`} className="font-semibold text-royal hover:text-purple">
+          <Link to={`/teacher/scenarios/${row.id}/edit`} className="font-semibold text-royal-ink hover:text-purple-ink">
             {row.title}
           </Link>
           <p className="text-xs text-fg-muted">{row.description}</p>
@@ -104,7 +104,7 @@ export default function MyScenarios() {
         </select>
       </div>
 
-      {message ? <div className="rounded border border-success/30 bg-success/10 p-3 text-sm text-success">{message}</div> : null}
+      {message ? <div className="rounded border border-success/30 bg-success/10 p-3 text-sm text-success-ink">{message}</div> : null}
 
       {scenarios.data?.length || scenarios.isLoading || scenarios.isError ? (
         <Table

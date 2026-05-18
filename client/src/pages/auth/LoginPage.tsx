@@ -38,7 +38,7 @@ export default function LoginPage() {
         <Card title="Вход в систему" description="Используйте учетную запись ВМедА">
           <form className="space-y-4" onSubmit={onSubmit}>
             {error ? (
-              <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
+              <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-3 text-sm text-danger-ink">
                 {error}
               </div>
             ) : null}

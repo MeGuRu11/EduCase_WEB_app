@@ -25,7 +25,7 @@ export function EmptyState({ action, description, icon, title }: EmptyStateProps
           {action.href ? (
             <Link
               to={action.href}
-              className="focus-ring inline-flex h-10 items-center justify-center rounded bg-royal px-4 text-sm font-medium text-white transition-colors hover:bg-cyan"
+              className="focus-ring inline-flex h-10 items-center justify-center rounded bg-royal-ink px-4 text-sm font-medium text-white transition-colors hover:bg-cyan-ink"
             >
               {action.label}
             </Link>

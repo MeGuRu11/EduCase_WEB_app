@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { authApi } from '@/api/auth';
+import { authSessionApi } from '@/api/authSession';
 import type { LoginRequest } from '@/types/auth';
 import type { UserOut } from '@/types/user';
 
@@ -100,7 +100,7 @@ export const useAuthStore = create<AuthState>()(
     },
 
     login: async (payload) => {
-      const { data } = await authApi.login(payload);
+      const { data } = await authSessionApi.login(payload);
       if (!data.user || !data.refresh_token) {
         throw new Error('Login response did not include a complete session');
       }
@@ -117,7 +117,7 @@ export const useAuthStore = create<AuthState>()(
       const refreshToken = get().refreshToken;
       if (!refreshToken) return null;
 
-      const { data } = await authApi.refresh({ refresh_token: refreshToken });
+      const { data } = await authSessionApi.refresh({ refresh_token: refreshToken });
       get().setAccessToken(data.access_token);
       return data.access_token;
     },

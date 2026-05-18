@@ -49,7 +49,7 @@ export function Sidebar() {
             className={({ isActive }) =>
               cn(
                 'focus-ring flex items-center gap-3 rounded px-3 py-2 text-sm font-medium transition-colors',
-                isActive ? 'bg-royal/10 text-royal' : 'text-fg-muted hover:bg-lavender/30 hover:text-fg',
+                isActive ? 'bg-royal/10 text-royal-ink' : 'text-fg-muted hover:bg-lavender/30 hover:text-fg',
               )
             }
           >

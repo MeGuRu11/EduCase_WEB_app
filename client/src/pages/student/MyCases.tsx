@@ -68,7 +68,7 @@ function CaseActions({ attempt, scenario }: { attempt?: AttemptSummaryOut; scena
   if (attempt?.status === 'in_progress') {
     return (
       <div className="flex flex-wrap gap-2">
-        <Link className="focus-ring rounded bg-royal px-3 py-2 text-sm font-medium text-white hover:bg-cyan" to={`/student/cases/${scenario.id}/play`}>
+        <Link className="focus-ring rounded bg-royal-ink px-3 py-2 text-sm font-medium text-white hover:bg-cyan-ink" to={`/student/cases/${scenario.id}/play`}>
           Продолжить
         </Link>
         <Link className="focus-ring rounded border border-border px-3 py-2 text-sm font-medium text-fg hover:bg-surface" to="/student/results">
@@ -80,14 +80,14 @@ function CaseActions({ attempt, scenario }: { attempt?: AttemptSummaryOut; scena
 
   if (attempt) {
     return (
-      <Link className="focus-ring rounded bg-purple px-3 py-2 text-sm font-medium text-white hover:bg-purple/90" to="/student/results">
+      <Link className="focus-ring rounded bg-purple-ink px-3 py-2 text-sm font-medium text-white hover:bg-purple-ink/90" to="/student/results">
         Результат
       </Link>
     );
   }
 
   return (
-    <Link className="focus-ring rounded bg-royal px-3 py-2 text-sm font-medium text-white hover:bg-cyan" to={`/student/cases/${scenario.id}/play`}>
+    <Link className="focus-ring rounded bg-royal-ink px-3 py-2 text-sm font-medium text-white hover:bg-cyan-ink" to={`/student/cases/${scenario.id}/play`}>
       Начать
     </Link>
   );
@@ -102,7 +102,7 @@ function CaseCard({ attempts, scenario }: { attempts: AttemptSummaryOut[]; scena
         {scenario.cover_url ? (
           <img src={scenario.cover_url} alt="" className="h-full w-full object-cover" />
         ) : (
-          <Icon name="cases" className="h-12 w-12 text-royal" />
+          <Icon name="cases" className="h-12 w-12 text-royal-ink" />
         )}
       </div>
       <div className="space-y-3">
@@ -147,13 +147,13 @@ export default function MyCases() {
   if (scenarios.isLoading || attempts.isLoading) return <Skeleton rows={6} label="Loading table" />;
 
   if (scenarios.isError || attempts.isError) {
-    return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger">Не удалось загрузить кейсы.</div>;
+    return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">Не удалось загрузить кейсы.</div>;
   }
 
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-royal">S-2 Assigned cases</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-royal-ink">S-2 Assigned cases</p>
         <h1 className="text-3xl font-bold text-fg">Мои кейсы</h1>
       </header>
 

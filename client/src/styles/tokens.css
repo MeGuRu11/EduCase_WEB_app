@@ -19,6 +19,13 @@
   --color-warning:   #F59E0B;   /* partial, timer running out */
   --color-danger:    #EF4444;   /* is_correct=false, error, blocked */
 
+  /* AA text/action variants (Stage 10 UX audit) */
+  --color-royal-ink:   #1D4ED8;   /* primary text/actions on light surfaces */
+  --color-cyan-ink:    #0369A1;   /* secondary text/actions on light surfaces */
+  --color-purple-ink:  #6D28D9;   /* accent text/actions on light surfaces */
+  --color-success-ink: #047857;   /* success text on light surfaces */
+  --color-warning-ink: #92400E;   /* warning text on light surfaces */
+  --color-danger-ink:  #B91C1C;   /* danger text/actions on light surfaces */
   /* ── Foreground / text ──────────────────────────────────── */
   --color-fg:        #0F172A;   /* main text, dark icons */
   --color-fg-muted:  #64748B;   /* secondary text, placeholders */
@@ -73,17 +80,17 @@ html, body {
 
 .timer-warning {
   animation: epicase-pulse 2s ease-in-out infinite;
-  color: var(--color-warning);
+  color: var(--color-warning-ink);
 }
 .timer-danger {
   animation: epicase-pulse 1s ease-in-out infinite;
-  color: var(--color-danger);
+  color: var(--color-danger-ink);
 }
 
 /* ── Maintenance mode banner (ADDENDUM §T.5) ────────────────── */
 .maintenance-banner {
-  background: var(--color-danger);
-  color: #fff;
+  background: var(--color-danger-ink);
+  color: #FFFFFF;
   padding: 12px 24px;
   text-align: center;
   font-size: 14px;

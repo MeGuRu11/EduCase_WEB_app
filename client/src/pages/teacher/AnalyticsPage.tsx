@@ -243,7 +243,7 @@ export default function AnalyticsPage() {
   if (statsQuery.isLoading) return <Skeleton rows={6} label="Loading table" />;
 
   if (statsQuery.isError) {
-    return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger">Не удалось загрузить аналитику.</div>;
+    return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">Не удалось загрузить аналитику.</div>;
   }
 
   if (!stat) {
@@ -254,7 +254,7 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <header className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
-          <Link to="/teacher/scenarios" className="text-sm font-semibold text-royal hover:text-cyan">← Назад к сценариям</Link>
+          <Link to="/teacher/scenarios" className="text-sm font-semibold text-royal-ink hover:text-cyan-ink">← Назад к сценариям</Link>
           <h1 className="mt-2 text-3xl font-bold text-fg">Аналитика · {stat.scenario_title}</h1>
           <p className="text-sm text-fg-muted">{stat.group_name ? `Группа: ${stat.group_name}` : 'Все доступные группы'}</p>
         </div>
@@ -302,7 +302,7 @@ export default function AnalyticsPage() {
               role="tab"
               aria-selected={tab === item.id}
               className={tab === item.id
-                ? 'focus-ring rounded bg-purple px-3 py-2 text-sm font-semibold text-white'
+                ? 'focus-ring rounded bg-purple-ink px-3 py-2 text-sm font-semibold text-white'
                 : 'focus-ring rounded px-3 py-2 text-sm font-semibold text-fg-muted hover:bg-surface hover:text-fg'}
               onClick={() => setTab(item.id)}
             >

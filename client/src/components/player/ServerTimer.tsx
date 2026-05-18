@@ -82,9 +82,9 @@ export function ServerTimer({ attemptId, initialExpiresAt, onExpire }: ServerTim
 
   const stateClass =
     state === 'danger'
-      ? 'text-danger animate-pulse'
+      ? 'text-danger-ink animate-pulse'
       : state === 'warning'
-        ? 'text-warning'
+        ? 'text-warning-ink'
         : 'text-fg-muted';
 
   return (
