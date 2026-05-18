@@ -76,10 +76,14 @@ function parseCsvPreview(text: string): CsvPreviewRow[] {
 }
 
 function extractBulkErrors(error: unknown): UserBulkError[] {
-  if (!(error instanceof AxiosError)) return [{ row: 0, detail: 'Не удалось импортировать CSV' }];
-  const detail = error.response?.data?.detail as Partial<UserBulkResult> | string | undefined;
+  // Duck-type response.data.detail — works for AxiosError, MSW mocks, and
+  // anything else that exposes the standard FastAPI error envelope.
+  const response = (error as AxiosError | undefined)?.response;
+  const data = response?.data as { detail?: Partial<UserBulkResult> | string } | undefined;
+  const detail = data?.detail;
   if (detail && typeof detail === 'object' && Array.isArray(detail.errors)) return detail.errors;
-  return [{ row: 0, detail: typeof detail === 'string' ? detail : 'Не удалось импортировать CSV' }];
+  if (typeof detail === 'string') return [{ row: 0, detail }];
+  return [{ row: 0, detail: 'Не удалось импортировать CSV' }];
 }
 
 function userMatches(user: UserOut, search: string, role: string, status: string, groupId: string) {
@@ -319,7 +323,7 @@ export default function UsersPage() {
             <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
               <p className="font-semibold">Ошибки импорта</p>
               <ul className="mt-2 space-y-1">
-                {csvErrors.map((error, index) => <li key={`${error.row}-${index}`}>Строка {error.row}: {error.detail}</li>)}
+                {csvErrors.map((error, index) => <li key={`${error.row}-${index}`}>{`Строка ${error.row}: ${error.detail}`}</li>)}
               </ul>
             </div>
           ) : null}
