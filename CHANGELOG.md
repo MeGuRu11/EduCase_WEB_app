@@ -1,5 +1,49 @@
 # EpiCase — CHANGELOG
 
+## 1.0.0 — 2026-05-18 — Release v1.0.0 (initial deploy for VMedA)
+
+> First production release. All stages 0–10 complete.
+> Target environment: isolated LAN at С.М. Кирова Военно-медицинская академия.
+
+### Stages merged into this release
+
+- **Stage 0** — Infrastructure (Docker Compose, /api/ping)
+- **Stage 1** — Auth + Users + Groups (44 tests)
+- **Stage 2** — Scenarios + Graph engine (48 new tests, 92 total)
+- **Stage 3** — Attempts + Grading + APScheduler (45 new tests, 137 total)
+- **Stage 4** — Analytics + Admin + Backup/Restore (46 new tests, 183 total)
+- **Stage 5** — Client Auth + UI kit + Layout (43 frontend tests)
+- **Stage 6** — Client Scenario Editor (21 new frontend tests, 64 total)
+- **Stage 7** — Client Case Player (19 new frontend tests, 83 total)
+- **Stage 8** — Client Dashboards + Analytics charts
+- **Stage 9** — Client Admin panel + HealthWidget (+1 fix: alert must not skip status=error)
+- **Stage 10** — Release engineering
+
+### Stage 10 deliverables
+
+- Static security audit per §B.2.3 — 13/13 checks pass (`docs/SECURITY_AUDIT_v1.0.0.md`)
+- Final test counts: **183 backend / 107 frontend** all green, ruff clean, tsc clean
+- Final fixes on `main`:
+  - `UP046` ruff ignore re-added for Pydantic 2.9.2 compat
+  - `UsersPage` CSV upload: split JSX text node → template literal,
+    `bulkCsv` uses fetch adapter to bypass jsdom XHR + FormData hang
+- User-facing documentation:
+  - `docs/DEPLOY.md` — пошаговая инструкция для VMedA IT
+  - `docs/ADMIN_GUIDE.md` — гайд для админа платформы
+  - `docs/TEACHER_GUIDE.md` — гайд для преподавателя
+  - `docs/STUDENT_GUIDE.md` — гайд для студента
+- Release packaging via `scripts/build-images.sh` + `scripts/package-release.sh`
+  (must be run on dev machine with Docker)
+
+### Deferred to v1.1+
+
+- Refresh-token rotation
+- JWT_SECRET rotation on restore
+- At-rest DB encryption (ADR-013 — accepted risk for isolated LAN)
+- Full live smoke-test §15 — must be performed by VMedA IT on first deploy
+
+---
+
 ## 1.2.0 — 2026-04-25 — Stage 4 (Analytics + Admin + Backup/Restore)
 
 ### Added

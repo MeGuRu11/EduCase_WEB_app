@@ -1,10 +1,13 @@
 # EpiCase — Project Memory
 
 ## Last Updated
-- Date: 2026-05-08
-- Agent: Codex GPT 5.5
-- Stage: STAGE 9 closed — Admin panel
-        (183 backend tests green + 105 frontend tests green; ruff, tsc, vitest, verify clean)
+- Date: 2026-05-18
+- Agent: Claude Opus 4.7
+- Stage: STAGE 10 closed — Release v1.0.0 ready for VMedA
+        (183 backend tests green + 107 frontend tests green; ruff, tsc, vitest,
+         verify clean; OWASP §B.2.3 audit 13/13 pass; user guides + DEPLOY + security
+         report written; tag v1.0.0 local; package-release.sh + build-images.sh
+         must be run on dev machine with Docker for tar.gz artifact)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**
@@ -86,8 +89,16 @@
       react-hook-form + zod UX validation, readonly path visualization, result
       page with score/status/steps/PDF print action, and 410 Gone redirect path.
 - [x] STAGE 8 — Client: Dashboards (Codex GPT 5.5)
-- [x] STAGE 9 — Client: Admin panel (Codex GPT 5.5)
-- [ ] STAGE 10 — Integration + deploy (Both)
+- [x] STAGE 9 — Client: Admin panel (Codex GPT 5.5) + fix: HealthWidget alert
+      must not skip status=error (Claude Opus 4.7)
+- [x] STAGE 10 — Release v1.0.0 (Claude Opus 4.7):
+      Static blockers fixed (UP046 ruff ignore re-added, UsersPage CSV split-text
+      + fetch adapter). Security audit 13/13 pass (`docs/SECURITY_AUDIT_v1.0.0.md`).
+      User-facing docs (DEPLOY, ADMIN_GUIDE, TEACHER_GUIDE, STUDENT_GUIDE).
+      CHANGELOG + README updated for v1.0.0. Local git tag v1.0.0 set.
+      Docker build + smoke-test § 15 + EXPLAIN ANALYZE — deferred to dev machine
+      with full stack (sandbox limitation); VMedA IT runs full smoke per
+      `docs/DEPLOY.md` Verification section.
 
 ## Test Status
 - Backend: 183 tests / 183 passed  (Stage 4 target: ≥230 ⚠️ short — covered breadth, deferred extra-cases)
@@ -164,7 +175,10 @@
   ScenarioFullOut sanitized and using computed teacher-only metadata keys.
 
 ## Next Action
-→ start **Stage 10** only after user approval: integration + deploy per project plan.
+→ v1.0.0 готов. Передать `dist/epicase-v1.0.0.tar.gz` VMedA IT (см. `docs/DEPLOY.md`).
+  Live smoke-test §15 + EXPLAIN ANALYZE — обязанность IT перед открытием доступа
+  реальным пользователям. v1.1 backlog: refresh-token rotation, JWT_SECRET rotation
+  on restore, full live load test.
 
 Deferred hardening status (2026-04-25):
 - ✅ Audit log table (mig 005 + AuditService)

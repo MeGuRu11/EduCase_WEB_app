@@ -59,7 +59,10 @@ export const usersApi = {
   async bulkCsv(file: File) {
     const data = new FormData();
     data.append('file', file);
-    const response = await api.post<UserBulkResult>('/users/bulk-csv', data);
+    // 'fetch' adapter avoids XHR multipart issues under jsdom + MSW v2.
+    // baseURL is resolved to an absolute URL because fetch requires it.
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+    const response = await api.post<UserBulkResult>(`${origin}/api/users/bulk-csv`, data, { adapter: 'fetch' });
     return response.data;
   },
 };
