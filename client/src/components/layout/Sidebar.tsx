@@ -26,6 +26,7 @@ const itemsByRole: Record<UserRole, SidebarItem[]> = {
   admin: [
     { label: 'Панель управления', href: '/admin', icon: 'admin' },
     { label: 'Пользователи', href: '/admin/users', icon: 'users' },
+    { label: 'Группы', href: '/admin/groups', icon: 'groups' },
     { label: 'Система', href: '/admin/system', icon: 'system' },
     { label: 'Настройки', href: '/admin/settings', icon: 'settings' },
   ],

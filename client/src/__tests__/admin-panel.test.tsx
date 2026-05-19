@@ -7,6 +7,7 @@ import HealthWidget from '@/components/admin/HealthWidget';
 import MaintenanceBanner from '@/components/admin/MaintenanceBanner';
 import { Sidebar } from '@/components/layout/Sidebar';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
+import AdminGroupsPage from '@/pages/admin/GroupsPage';
 import SettingsPage from '@/pages/admin/SettingsPage';
 import SystemPage from '@/pages/admin/SystemPage';
 import UsersPage from '@/pages/admin/UsersPage';
@@ -458,5 +459,142 @@ describe('Stage 9 admin panel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Экспорт CSV' }));
 
     expect(clickSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('GroupsPage shows admin sidebar entry "Группы" between Пользователи and Система', () => {
+    act(() => {
+      useAuthStore.getState().setSession({
+        user: { ...users[0], role: 'admin', role_id: 3 },
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      });
+    });
+
+    renderWithProviders(<Sidebar />, { route: '/admin/groups' });
+    const links = screen.getAllByRole('link').map((link) => link.getAttribute('href'));
+    const usersIdx = links.indexOf('/admin/users');
+    const groupsIdx = links.indexOf('/admin/groups');
+    const systemIdx = links.indexOf('/admin/system');
+    expect(groupsIdx).toBeGreaterThan(-1);
+    expect(usersIdx).toBeLessThan(groupsIdx);
+    expect(groupsIdx).toBeLessThan(systemIdx);
+  });
+
+  it('GroupsPage renders groups table with name, student count, teachers, status, actions', async () => {
+    useAdminHandlers('ok');
+    server.use(
+      http.get('/api/groups/', () =>
+        HttpResponse.json([
+          { id: 3, name: '431 учебная', description: 'Основная группа', teachers: [{ id: 2, full_name: 'Петров П.П.' }], student_count: 12, is_active: true, created_at: now },
+          { id: 4, name: 'Архивная', description: null, teachers: [], student_count: 0, is_active: false, created_at: now },
+        ]),
+      ),
+    );
+
+    renderWithProviders(<AdminGroupsPage />);
+
+    expect(await screen.findByText('Учебные группы')).toBeInTheDocument();
+    expect(screen.getByText('АДМИНИСТРАТОР: ГРУППЫ')).toBeInTheDocument();
+    expect(screen.getByText('431 учебная')).toBeInTheDocument();
+    expect(screen.getByText('Основная группа')).toBeInTheDocument();
+    expect(screen.getByText('12')).toBeInTheDocument();
+    expect(screen.getByText('Петров П.П.')).toBeInTheDocument();
+    expect(screen.getByText('Архив')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Редактировать' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Удалить' })).toHaveLength(2);
+  });
+
+  it('GroupsPage creates a new group via POST /api/groups/', async () => {
+    useAdminHandlers('ok');
+    let posted: { name: string; description: string | null } | null = null;
+    server.use(
+      http.get('/api/groups/', () => HttpResponse.json([])),
+      http.post('/api/groups/', async ({ request }) => {
+        posted = (await request.json()) as { name: string; description: string | null };
+        return HttpResponse.json({
+          id: 99,
+          name: posted.name,
+          description: posted.description,
+          teachers: [],
+          student_count: 0,
+          is_active: true,
+          created_at: now,
+        }, { status: 201 });
+      }),
+    );
+
+    renderWithProviders(<AdminGroupsPage />);
+
+    await screen.findByText('Учебные группы');
+    await userEvent.click(screen.getByRole('button', { name: 'Создать группу' }));
+    const nameInput = await screen.findByLabelText('Название');
+    await userEvent.type(nameInput, '432 учебная');
+    await userEvent.type(screen.getByLabelText('Описание (необязательно)'), 'Новый набор');
+    await userEvent.click(screen.getByRole('button', { name: 'Создать' }));
+
+    await waitFor(() => expect(posted).not.toBeNull());
+    expect(posted).toEqual({ name: '432 учебная', description: 'Новый набор' });
+  });
+
+  it('GroupsPage adds a student to a group through the members modal', async () => {
+    useAdminHandlers('ok');
+    const targetGroup = { id: 3, name: '431 учебная', description: null, teachers: [], student_count: 0, is_active: true, created_at: now };
+    server.use(
+      http.get('/api/groups/', () => HttpResponse.json([targetGroup])),
+      http.get('/api/users/', () =>
+        HttpResponse.json({
+          items: [
+            ...users,
+            { id: 5, username: 'sidorov.s', full_name: 'Сидоров С.С.', role: 'student', role_id: 1, group_id: null, group_name: null, avatar_url: null, is_active: true, must_change_password: false, last_login_at: null, created_at: now },
+          ],
+          total: 3,
+          page: 1,
+          pages: 1,
+          per_page: 100,
+        }),
+      ),
+    );
+    let addedFor: { groupId: number; userId: number } | null = null;
+    server.use(
+      http.post('/api/groups/:groupId/members', async ({ params, request }) => {
+        const body = (await request.json()) as { user_id: number };
+        addedFor = { groupId: Number(params.groupId), userId: body.user_id };
+        return HttpResponse.json({ status: 'ok' });
+      }),
+    );
+
+    renderWithProviders(<AdminGroupsPage />);
+
+    await screen.findByText('431 учебная');
+    await userEvent.click(screen.getByRole('button', { name: 'Студенты' }));
+    const picker = await screen.findByLabelText('Студент');
+    await userEvent.selectOptions(picker, '5');
+    await userEvent.click(screen.getByRole('button', { name: 'Добавить' }));
+
+    await waitFor(() => expect(addedFor).toEqual({ groupId: 3, userId: 5 }));
+  });
+
+  it('GroupsPage deletes a group via DELETE /api/groups/{id} after confirm', async () => {
+    useAdminHandlers('ok');
+    const group = { id: 7, name: 'Удаляемая', description: null, teachers: [], student_count: 0, is_active: true, created_at: now };
+    server.use(
+      http.get('/api/groups/', () => HttpResponse.json([group])),
+    );
+    let deletedId: number | null = null;
+    server.use(
+      http.delete('/api/groups/:groupId', ({ params }) => {
+        deletedId = Number(params.groupId);
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    renderWithProviders(<AdminGroupsPage />);
+
+    await screen.findByText('Удаляемая');
+    await userEvent.click(screen.getByRole('button', { name: 'Удалить' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Удалить' }));
+
+    await waitFor(() => expect(deletedId).toBe(7));
   });
 });

@@ -137,3 +137,55 @@ def test_remove_teacher_from_group(
     )
     assert r.status_code == 200
     assert r.json() == {"status": "removed"}
+
+
+def test_admin_can_delete_empty_group(client: TestClient, admin_token: str) -> None:
+    group = _create_group(client, admin_token, "Группа на удаление")
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    r = client.delete(f"/api/groups/{group['id']}", headers=headers)
+    assert r.status_code == 204
+    assert r.content == b""
+
+    listing = client.get("/api/groups/", headers=headers)
+    assert listing.status_code == 200
+    assert all(g["id"] != group["id"] for g in listing.json())
+
+
+def test_delete_group_with_students_returns_409(
+    client: TestClient,
+    admin_token: str,
+    student_user: User,
+) -> None:
+    group = _create_group(client, admin_token, "Группа со студентом")
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    client.post(
+        f"/api/groups/{group['id']}/members",
+        headers=headers,
+        json={"user_id": student_user.id},
+    )
+
+    r = client.delete(f"/api/groups/{group['id']}", headers=headers)
+    assert r.status_code == 409
+    assert "студент" in r.json()["detail"].lower()
+
+
+def test_teacher_cannot_delete_group(
+    client: TestClient, admin_token: str, teacher_token: str
+) -> None:
+    group = _create_group(client, admin_token, "Запрет преподавателю")
+    r = client.delete(
+        f"/api/groups/{group['id']}",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    )
+    assert r.status_code == 403
+
+
+def test_delete_missing_group_returns_404(
+    client: TestClient, admin_token: str
+) -> None:
+    r = client.delete(
+        "/api/groups/99999",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert r.status_code == 404

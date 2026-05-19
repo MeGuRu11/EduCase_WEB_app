@@ -3,6 +3,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { getHomeByRole } from '@/hooks/useAuth';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
+import AdminGroupsPage from '@/pages/admin/GroupsPage';
 import SettingsPage from '@/pages/admin/SettingsPage';
 import SystemPage from '@/pages/admin/SystemPage';
 import UsersPage from '@/pages/admin/UsersPage';
@@ -61,6 +62,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<UsersPage />} />
+          <Route path="/admin/groups" element={<AdminGroupsPage />} />
           <Route path="/admin/system" element={<SystemPage />} />
           <Route path="/admin/settings" element={<SettingsPage />} />
         </Route>
