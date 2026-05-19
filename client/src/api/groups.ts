@@ -23,6 +23,10 @@ export const groupsApi = {
     return response.data;
   },
 
+  async remove(groupId: number) {
+    await api.delete(`/groups/${groupId}`);
+  },
+
   async addMember(groupId: number, payload: GroupMemberAdd) {
     const response = await api.post<{ status: string }>(`/groups/${groupId}/members`, payload);
     return response.data;

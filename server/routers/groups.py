@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
@@ -72,6 +72,22 @@ def update_group(
     group = _get_group_or_404(db, group_id)
     group = GroupService.update(db, group=group, patch=payload, actor=current)
     return GroupService.to_out(db, group)
+
+
+@router.delete(
+    "/{group_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    dependencies=[Depends(require_role(RoleName.ADMIN))],
+)
+def delete_group(
+    group_id: int,
+    current: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    group = _get_group_or_404(db, group_id)
+    GroupService.delete(db, group=group, actor=current)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post(

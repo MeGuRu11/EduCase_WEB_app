@@ -88,6 +88,40 @@ class GroupService:
             )
         return group
 
+    @classmethod
+    def delete(
+        cls,
+        db: Session,
+        *,
+        group: Group,
+        actor: User | None = None,
+    ) -> None:
+        student_count = (
+            db.query(func.count(User.id))
+            .join(Role, User.role_id == Role.id)
+            .filter(User.group_id == group.id, Role.name == RoleName.STUDENT)
+            .scalar()
+            or 0
+        )
+        if student_count:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Нельзя удалить группу со студентами — сначала переведите их в другую группу",
+            )
+        db.query(TeacherGroup).filter(TeacherGroup.group_id == group.id).delete(
+            synchronize_session=False
+        )
+        log_action(
+            db,
+            actor_id=actor.id if actor else None,
+            action="group.delete",
+            entity_type="group",
+            entity_id=group.id,
+            meta={"name": group.name},
+        )
+        db.delete(group)
+        db.flush()
+
     # ─── Listing ───────────────────────────────────────────────────────────
 
     @classmethod
