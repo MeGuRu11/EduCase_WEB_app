@@ -5,11 +5,13 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import HealthWidget from '@/components/admin/HealthWidget';
 import MaintenanceBanner from '@/components/admin/MaintenanceBanner';
+import { Sidebar } from '@/components/layout/Sidebar';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import SettingsPage from '@/pages/admin/SettingsPage';
 import SystemPage from '@/pages/admin/SystemPage';
 import UsersPage from '@/pages/admin/UsersPage';
 import { useAuthStore } from '@/stores/authStore';
+import type { UserOut } from '@/types/user';
 import { server } from './setup';
 import { renderWithProviders } from './testUtils';
 
@@ -22,7 +24,7 @@ vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children?: ReactNode }) => <div data-testid="responsive-chart">{children}</div>,
   Tooltip: () => <div data-testid="chart-tooltip" />,
   XAxis: () => <div data-testid="x-axis" />,
-  YAxis: () => <div data-testid="y-axis" />,
+  YAxis: ({ domain }: { domain?: Array<number | string> }) => <div data-testid="y-axis" data-domain={domain?.join('-') ?? ''} />,
 }));
 
 const now = '2026-05-08T09:00:00Z';
@@ -76,7 +78,7 @@ const errorLog = {
   created_at: now,
 };
 
-const users = [
+const users: UserOut[] = [
   {
     id: 1,
     username: 'ivanov.i',
@@ -148,10 +150,48 @@ describe('Stage 9 admin panel', () => {
     useAdminHandlers('ok');
     renderWithProviders(<AdminDashboard />);
 
-    expect(await screen.findByText('Admin dashboard')).toBeInTheDocument();
+    expect(await screen.findByText('АДМИНИСТРАТОР: ПАНЕЛЬ')).toBeInTheDocument();
     expect(screen.getByTestId('health-widget')).toBeInTheDocument();
     expect(screen.getByText('30')).toBeInTheDocument();
     expect(screen.getAllByTestId('line-chart')).toHaveLength(2);
+    expect(screen.getAllByTestId('y-axis')).toHaveLength(2);
+    expect(screen.getAllByTestId('y-axis').map((axis) => axis.dataset.domain)).toEqual(['0-30', '0-30']);
+  });
+
+  it('AdminDashboard keeps the 0-30 Y axis for empty admin chart data', async () => {
+    useAdminHandlers('ok');
+    server.use(
+      http.get('/api/analytics/admin/stats', () =>
+        HttpResponse.json({
+          ...adminStats,
+          users_total: 0,
+          attempts_today: 0,
+          attempts_total: 0,
+        }),
+      ),
+    );
+
+    renderWithProviders(<AdminDashboard />);
+
+    expect(await screen.findByText('АДМИНИСТРАТОР: ПАНЕЛЬ')).toBeInTheDocument();
+    expect(screen.getAllByTestId('y-axis').map((axis) => axis.dataset.domain)).toEqual(['0-30', '0-30']);
+  });
+
+  it('renders Russian admin sidebar navigation', () => {
+    act(() => {
+      useAuthStore.getState().setSession({
+        user: { ...users[0], role: 'admin', role_id: 3 },
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      });
+    });
+
+    renderWithProviders(<Sidebar />, { route: '/admin' });
+
+    expect(screen.getByRole('link', { name: /Панель управления/ })).toHaveAttribute('href', '/admin');
+    expect(screen.getByRole('link', { name: /Пользователи/ })).toHaveAttribute('href', '/admin/users');
+    expect(screen.getByRole('link', { name: /Система/ })).toHaveAttribute('href', '/admin/system');
+    expect(screen.getByRole('link', { name: /Настройки/ })).toHaveAttribute('href', '/admin/settings');
   });
 
   it.each([
@@ -234,6 +274,12 @@ describe('Stage 9 admin panel', () => {
     renderWithProviders(<UsersPage />);
 
     expect(await screen.findByRole('heading', { name: 'Пользователи' })).toBeInTheDocument();
+    expect(screen.getByText('АДМИНИСТРАТОР: ПОЛЬЗОВАТЕЛИ')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Редактировать' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Сбросить пароль' })).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Заблокировать' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Разблокировать' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Удалить' })).toHaveLength(2);
     await userEvent.type(screen.getByLabelText('Поиск'), 'petrov');
     await userEvent.selectOptions(screen.getByLabelText('Роль'), 'teacher');
     expect(screen.getByText('Петров П.П.')).toBeInTheDocument();
@@ -283,6 +329,64 @@ describe('Stage 9 admin panel', () => {
     expect(roleSelect).toHaveValue('teacher');
   });
 
+  it('UsersPage submits create user form, closes modal and refreshes the table', async () => {
+    useAdminHandlers('ok');
+    let rows = [...users];
+    let authHeader = '';
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    act(() => {
+      useAuthStore.getState().setSession({
+        user: { ...users[0], role: 'admin', role_id: 3 },
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      });
+    });
+    server.use(
+      http.get('/api/users/', () => HttpResponse.json({ items: rows, total: rows.length, page: 1, pages: 1, per_page: 20 })),
+      http.post('/api/users/', async ({ request }) => {
+        authHeader = request.headers.get('authorization') ?? '';
+        const body = (await request.json()) as { username: string; password: string; full_name: string; role_id: number; group_id: number | null };
+        const created: UserOut = {
+          id: 3,
+          username: body.username,
+          full_name: body.full_name,
+          role: body.role_id === 2 ? 'teacher' : body.role_id === 3 ? 'admin' : 'student',
+          role_id: body.role_id,
+          group_id: body.group_id,
+          group_name: null,
+          avatar_url: null,
+          is_active: true,
+          must_change_password: true,
+          last_login_at: null,
+          created_at: now,
+        };
+        rows = [...rows, created];
+        return HttpResponse.json(created, { status: 201 });
+      }),
+    );
+
+    renderWithProviders(<UsersPage />);
+
+    expect(await screen.findByRole('heading', { name: 'Пользователи' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Создать пользователя' }));
+
+    const dialog = screen.getByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText('Логин'), 'sidorov.s');
+    await userEvent.type(within(dialog).getByLabelText('Пароль'), 'Student123!');
+    await userEvent.type(within(dialog).getByLabelText('ФИО'), 'Сидоров С.С.');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Создать' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(authHeader).toBe('Bearer access-token');
+    expect(logSpy).toHaveBeenCalledWith('[UsersPage] create submit', {
+      username: 'sidorov.s',
+      full_name: 'Сидоров С.С.',
+      role_id: 1,
+      group_id: null,
+    });
+    expect(await screen.findByText('Сидоров С.С.')).toBeInTheDocument();
+  });
+
   it('SystemPage requires restore triple-confirm before POSTing restore', async () => {
     useAdminHandlers('ok');
     let restored = '';
@@ -296,6 +400,7 @@ describe('Stage 9 admin panel', () => {
     renderWithProviders(<SystemPage />);
 
     expect(await screen.findByRole('heading', { name: 'Система' })).toBeInTheDocument();
+    expect(screen.getByText('АДМИНИСТРАТОР: СИСТЕМА')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: `Восстановить ${backup.filename}` }));
     expect(screen.getByRole('dialog')).toHaveTextContent('Это заменит все данные');
     await userEvent.click(screen.getByRole('button', { name: 'Я понимаю' }));
@@ -333,6 +438,7 @@ describe('Stage 9 admin panel', () => {
     renderWithProviders(<SettingsPage />);
 
     const institution = await screen.findByLabelText('Название учреждения');
+    expect(screen.getByText('АДМИНИСТРАТОР: НАСТРОЙКИ')).toBeInTheDocument();
     await userEvent.clear(institution);
     await userEvent.type(institution, 'Военно-медицинская академия');
     expect(screen.getByRole('alert')).toHaveTextContent('Есть несохранённые изменения');

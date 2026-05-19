@@ -101,7 +101,7 @@ export default function SystemPage() {
     void sysinfo.refetch();
   }
 
-  if (isLoading) return <Skeleton rows={6} label="Loading table" />;
+  if (isLoading) return <Skeleton rows={6} label="Загрузка таблицы" />;
 
   if (hasError || !sysinfo.data) {
     return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">Не удалось загрузить системную панель.</div>;
@@ -110,7 +110,7 @@ export default function SystemPage() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-danger-ink">Admin system</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-danger-ink">АДМИНИСТРАТОР: СИСТЕМА</p>
         <h1 className="text-3xl font-bold text-fg">Система</h1>
         <p className="mt-1 text-sm text-fg-muted">Sysinfo, backups, restore orchestration и журналы.</p>
       </header>
@@ -119,8 +119,8 @@ export default function SystemPage() {
         <Card className="p-5"><p className="text-sm text-fg-muted">Размер БД</p><p className="mt-2 text-2xl font-bold text-fg">{sysinfo.data.db_size_mb.toFixed(1)} МБ</p></Card>
         <Card className="p-5"><p className="text-sm text-fg-muted">Версия</p><p className="mt-2 text-2xl font-bold text-fg">{sysinfo.data.version}</p></Card>
         <Card className="p-5"><p className="text-sm text-fg-muted">Python</p><p className="mt-2 text-2xl font-bold text-fg">{sysinfo.data.python_version}</p></Card>
-        <Card className="p-5"><p className="text-sm text-fg-muted">Uptime</p><p className="mt-2 text-2xl font-bold text-fg">{sysinfo.data.uptime_hours.toFixed(1)} ч</p></Card>
-        <Card className="p-5"><p className="text-sm text-fg-muted">Maintenance</p><p className="mt-2"><Badge variant={sysinfo.data.maintenance_mode ? 'danger' : 'success'}>{sysinfo.data.maintenance_mode ? 'Включён' : 'Выключен'}</Badge></p></Card>
+        <Card className="p-5"><p className="text-sm text-fg-muted">Время работы</p><p className="mt-2 text-2xl font-bold text-fg">{sysinfo.data.uptime_hours.toFixed(1)} ч</p></Card>
+        <Card className="p-5"><p className="text-sm text-fg-muted">Обслуживание</p><p className="mt-2"><Badge variant={sysinfo.data.maintenance_mode ? 'danger' : 'success'}>{sysinfo.data.maintenance_mode ? 'Включён' : 'Выключен'}</Badge></p></Card>
       </section>
 
       <Card title="Бэкапы" description="Restore запускается только после triple-confirm.">

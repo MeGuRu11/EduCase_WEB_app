@@ -26,23 +26,24 @@ function buildSevenDaySeries(total: number, today: number, key: 'users' | 'attem
 export default function AdminDashboard() {
   const stats = useAdminStats();
 
-  if (stats.isLoading) return <Skeleton rows={6} label="Loading table" />;
+  if (stats.isLoading) return <Skeleton rows={6} label="Загрузка таблицы" />;
 
   if (stats.isError || !stats.data) {
     return (
       <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">
-        Не удалось загрузить admin dashboard.
+        Не удалось загрузить панель администратора.
       </div>
     );
   }
 
-  const usersSeries = buildSevenDaySeries(stats.data.users_total, Math.max(1, Math.round(stats.data.users_total / 30)), 'users');
+  const usersToday = stats.data.users_total > 0 ? Math.max(1, Math.round(stats.data.users_total / 30)) : 0;
+  const usersSeries = buildSevenDaySeries(stats.data.users_total, usersToday, 'users');
   const attemptsSeries = buildSevenDaySeries(stats.data.attempts_total, stats.data.attempts_today, 'attempts');
 
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-danger-ink">Admin dashboard</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-danger-ink">АДМИНИСТРАТОР: ПАНЕЛЬ</p>
         <h1 className="text-3xl font-bold text-fg">Панель администратора</h1>
         <p className="mt-1 text-sm text-fg-muted">Контроль пользователей, состояния системы и операционных рисков.</p>
       </header>
@@ -63,7 +64,7 @@ export default function AdminDashboard() {
               <LineChart data={usersSeries} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
                 <XAxis dataKey="day" stroke="var(--color-fg-muted)" />
-                <YAxis stroke="var(--color-fg-muted)" />
+                <YAxis domain={[0, 30]} stroke="var(--color-fg-muted)" />
                 <Tooltip />
                 <Line type="monotone" dataKey="users" stroke="var(--color-royal)" strokeWidth={3} dot />
               </LineChart>
@@ -77,7 +78,7 @@ export default function AdminDashboard() {
               <LineChart data={attemptsSeries} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
                 <XAxis dataKey="day" stroke="var(--color-fg-muted)" />
-                <YAxis stroke="var(--color-fg-muted)" />
+                <YAxis domain={[0, 30]} stroke="var(--color-fg-muted)" />
                 <Tooltip />
                 <Line type="monotone" dataKey="attempts" stroke="var(--color-purple)" strokeWidth={3} dot />
               </LineChart>

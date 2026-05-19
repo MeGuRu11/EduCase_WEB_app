@@ -70,7 +70,7 @@ export default function SettingsPage() {
     notify.success('Настройки сохранены');
   }
 
-  if (settings.isLoading) return <Skeleton rows={5} label="Loading table" />;
+  if (settings.isLoading) return <Skeleton rows={5} label="Загрузка таблицы" />;
 
   if (settings.isError || !settings.data) {
     return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">Не удалось загрузить настройки.</div>;
@@ -79,9 +79,9 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-danger-ink">Admin settings</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-danger-ink">АДМИНИСТРАТОР: НАСТРОЙКИ</p>
         <h1 className="text-3xl font-bold text-fg">Настройки</h1>
-        <p className="mt-1 text-sm text-fg-muted">Параметры учреждения, сессий, загрузок и retention бэкапов.</p>
+        <p className="mt-1 text-sm text-fg-muted">Параметры учреждения, сессий, загрузок и срока хранения бэкапов.</p>
       </header>
 
       {isDirty ? (
@@ -98,7 +98,7 @@ export default function SettingsPage() {
             onChange={(event) => setForm((current) => ({ ...current, institution_name: event.target.value }))}
           />
           <Input
-            label="Idle timeout, мин"
+            label="Тайм-аут бездействия, мин"
             type="number"
             min={5}
             max={120}
@@ -106,7 +106,7 @@ export default function SettingsPage() {
             onChange={(event) => setForm((current) => ({ ...current, idle_timeout_min: Number(event.target.value) }))}
           />
           <Input
-            label="Max file upload, МБ"
+            label="Максимальный размер файла, МБ"
             type="number"
             min={1}
             max={50}
@@ -114,7 +114,7 @@ export default function SettingsPage() {
             onChange={(event) => setForm((current) => ({ ...current, max_file_upload_mb: Number(event.target.value) }))}
           />
           <Input
-            label="Backup retention, дней"
+            label="Хранение бэкапов, дней"
             type="number"
             min={7}
             max={365}

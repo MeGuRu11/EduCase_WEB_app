@@ -17,6 +17,20 @@ const statusMeta: Record<HealthStatus, { label: string; className: string; badge
   error: { label: 'Критическая ошибка', className: 'border-danger/30 bg-danger/10 text-danger-ink', badge: 'danger' },
 };
 
+const statusLabels: Record<HealthStatus, string> = {
+  ok: 'Норма',
+  warning: 'Внимание',
+  error: 'Ошибка',
+};
+
+const checkLabels: Record<string, string> = {
+  db: 'База данных',
+  disk: 'Диск',
+  backup: 'Бэкап',
+  scheduler: 'Планировщик',
+  errors_24h: 'Ошибки за 24 часа',
+};
+
 function playAlert() {
   if (typeof Audio === 'undefined') return;
   try {
@@ -49,12 +63,12 @@ export default function HealthWidget() {
     previousStatus.current = nextStatus;
   }, [health.data?.status]);
 
-  if (health.isLoading) return <div data-testid="health-widget"><Skeleton rows={4} label="Loading table" /></div>;
+  if (health.isLoading) return <div data-testid="health-widget"><Skeleton rows={4} label="Загрузка таблицы" /></div>;
 
   if (health.isError || !health.data) {
     return (
       <div data-testid="health-widget">
-        <Card title="HealthWidget">
+        <Card title="Состояние системы">
           <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-sm text-danger-ink">
             Не удалось загрузить состояние системы.
           </div>
@@ -69,7 +83,7 @@ export default function HealthWidget() {
 
   return (
     <div data-testid="health-widget">
-      <Card title="HealthWidget" description="ADR-011: in-app health alerts">
+      <Card title="Состояние системы" description="Оповещения о состоянии системы">
         <div
           role="status"
           data-testid="health-status"
@@ -78,7 +92,7 @@ export default function HealthWidget() {
         >
           <div className="flex items-center justify-between gap-3">
             <span className="font-semibold">{meta.label}</span>
-            <Badge variant={meta.badge}>{health.data.status}</Badge>
+            <Badge variant={meta.badge}>{statusLabels[health.data.status]}</Badge>
           </div>
           <p className="mt-1 text-sm">Версия {health.data.version}</p>
         </div>
@@ -89,9 +103,9 @@ export default function HealthWidget() {
             getRowKey={(row) => row.name}
             emptyMessage="Нет проверок"
             columns={[
-              { key: 'name', header: 'Проверка' },
-              { key: 'status', header: 'Статус', render: (row) => <Badge variant={statusMeta[row.status].badge}>{row.status}</Badge> },
-              { key: 'message', header: 'Детали', render: (row) => row.message ?? row.latency_ms ?? row.free_gb ?? row.count ?? 'ok' },
+              { key: 'name', header: 'Проверка', render: (row) => checkLabels[row.name] ?? row.name },
+              { key: 'status', header: 'Статус', render: (row) => <Badge variant={statusMeta[row.status].badge}>{statusLabels[row.status]}</Badge> },
+              { key: 'message', header: 'Детали', render: (row) => row.message ?? row.latency_ms ?? row.free_gb ?? row.count ?? 'Норма' },
             ]}
           />
 

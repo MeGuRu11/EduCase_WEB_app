@@ -1,6 +1,7 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { AxiosError } from 'axios';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { z } from 'zod';
 import { groupsApi } from '@/api/groups';
 import { usersApi } from '@/api/users';
 import { Badge } from '@/components/ui/Badge';
@@ -37,6 +38,53 @@ interface CreateForm {
   full_name: string;
   role: UserRole;
   group_id: string;
+}
+
+type CreateFormErrors = Partial<Record<keyof CreateForm, string>>;
+
+const createUserSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .min(3, 'Логин должен содержать минимум 3 символа')
+    .max(50, 'Логин должен быть не длиннее 50 символов')
+    .regex(/^[a-z0-9._-]+$/, 'Логин может содержать только латиницу в нижнем регистре, цифры, точку, дефис и подчёркивание'),
+  password: z
+    .string()
+    .min(8, 'Пароль должен содержать минимум 8 символов')
+    .max(128, 'Пароль должен быть не длиннее 128 символов')
+    .regex(
+      /^(?=.*[A-Za-zА-ЯЁа-яё])(?=.*\d)(?=.*[!@#$%^&*\-_=+]).{8,128}$/,
+      'Пароль должен содержать букву, цифру и спецсимвол',
+    ),
+  full_name: z.string().trim().min(2, 'ФИО должно содержать минимум 2 символа').max(200, 'ФИО должно быть не длиннее 200 символов'),
+  role: z.enum(['student', 'teacher', 'admin']),
+  group_id: z.string(),
+});
+
+function createPayload(form: z.infer<typeof createUserSchema>): UserCreate {
+  return {
+    username: form.username,
+    password: form.password,
+    full_name: form.full_name,
+    role_id: roleIds[form.role],
+    group_id: form.group_id === 'none' ? null : Number(form.group_id),
+  };
+}
+
+function createValidationErrors(error: z.ZodError): CreateFormErrors {
+  return error.issues.reduce<CreateFormErrors>((acc, issue) => {
+    const key = issue.path[0] as keyof CreateForm | undefined;
+    if (key && !acc[key]) acc[key] = issue.message;
+    return acc;
+  }, {});
+}
+
+function extractApiErrorMessage(error: unknown) {
+  const data = (error as AxiosError<{ detail?: string | Array<{ msg?: string }> }> | undefined)?.response?.data;
+  if (typeof data?.detail === 'string') return data.detail;
+  if (Array.isArray(data?.detail)) return data.detail.map((item) => item.msg).filter(Boolean).join('; ');
+  return 'Не удалось создать пользователя';
 }
 
 function SelectField({ children, label, onChange, value }: { children: ReactNode; label: string; onChange: (value: string) => void; value: string }) {
@@ -111,6 +159,8 @@ export default function UsersPage() {
   const [groupId, setGroupId] = useState('all');
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateForm>(emptyCreateForm);
+  const [createErrors, setCreateErrors] = useState<CreateFormErrors>({});
+  const [createError, setCreateError] = useState('');
   const [editTarget, setEditTarget] = useState<UserOut | null>(null);
   const [editForm, setEditForm] = useState<UserUpdate>({});
   const [csvOpen, setCsvOpen] = useState(false);
@@ -147,6 +197,19 @@ export default function UsersPage() {
     [groupId, role, search, status, users.data?.items],
   );
 
+  function openCreateModal() {
+    setCreateForm(emptyCreateForm);
+    setCreateErrors({});
+    setCreateError('');
+    setCreateOpen(true);
+  }
+
+  function closeCreateModal() {
+    setCreateOpen(false);
+    setCreateErrors({});
+    setCreateError('');
+  }
+
   async function handleCsvFile(file: File | null) {
     setCsvFile(file);
     setCsvErrors([]);
@@ -157,14 +220,32 @@ export default function UsersPage() {
     setCsvPreview(parseCsvPreview(await readFileText(file)));
   }
 
-  async function submitCreate() {
-    await createUser.mutateAsync({
-      username: createForm.username,
-      password: createForm.password,
-      full_name: createForm.full_name,
-      role_id: roleIds[createForm.role],
-      group_id: createForm.group_id === 'none' ? null : Number(createForm.group_id),
+  async function submitCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setCreateErrors({});
+    setCreateError('');
+
+    const parsed = createUserSchema.safeParse(createForm);
+    if (!parsed.success) {
+      setCreateErrors(createValidationErrors(parsed.error));
+      return;
+    }
+
+    const payload = createPayload(parsed.data);
+    console.log('[UsersPage] create submit', {
+      username: payload.username,
+      full_name: payload.full_name,
+      role_id: payload.role_id,
+      group_id: payload.group_id ?? null,
     });
+
+    try {
+      await createUser.mutateAsync(payload);
+    } catch (error) {
+      setCreateError(extractApiErrorMessage(error));
+      return;
+    }
+
     setCreateOpen(false);
     setCreateForm(emptyCreateForm);
   }
@@ -183,7 +264,7 @@ export default function UsersPage() {
     setResetPassword('');
   }
 
-  if (users.isLoading || groups.isLoading) return <Skeleton rows={6} label="Loading table" />;
+  if (users.isLoading || groups.isLoading) return <Skeleton rows={6} label="Загрузка таблицы" />;
 
   if (users.isError || groups.isError) {
     return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">Не удалось загрузить пользователей.</div>;
@@ -195,13 +276,13 @@ export default function UsersPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-danger-ink">Admin users</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-danger-ink">АДМИНИСТРАТОР: ПОЛЬЗОВАТЕЛИ</p>
           <h1 className="text-3xl font-bold text-fg">Пользователи</h1>
           <p className="mt-1 text-sm text-fg-muted">Поиск, фильтры, CSV-импорт и административные действия.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setCsvOpen(true)}>Импорт из CSV</Button>
-          <Button onClick={() => setCreateOpen(true)}>Создать пользователя</Button>
+          <Button onClick={openCreateModal}>Создать пользователя</Button>
         </div>
       </header>
 
@@ -242,10 +323,10 @@ export default function UsersPage() {
             header: 'Действия',
             render: (user) => (
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="ghost" onClick={() => { setEditTarget(user); setEditForm({ full_name: user.full_name, group_id: user.group_id }); }}>Edit</Button>
-                <Button size="sm" variant="ghost" onClick={() => setResetTarget(user)}>Reset password</Button>
-                <Button size="sm" variant="secondary" onClick={() => setUserStatus.mutate({ user, is_active: !user.is_active })}>{user.is_active ? 'Block' : 'Unblock'}</Button>
-                <Button size="sm" variant="danger" onClick={() => setDeleteTarget(user)}>Delete</Button>
+                <Button size="sm" variant="ghost" onClick={() => { setEditTarget(user); setEditForm({ full_name: user.full_name, group_id: user.group_id }); }}>Редактировать</Button>
+                <Button size="sm" variant="ghost" onClick={() => setResetTarget(user)}>Сбросить пароль</Button>
+                <Button size="sm" variant="secondary" onClick={() => setUserStatus.mutate({ user, is_active: !user.is_active })}>{user.is_active ? 'Заблокировать' : 'Разблокировать'}</Button>
+                <Button size="sm" variant="danger" onClick={() => setDeleteTarget(user)}>Удалить</Button>
               </div>
             ),
           },
@@ -255,13 +336,13 @@ export default function UsersPage() {
       <Modal
         open={createOpen}
         title="Создать пользователя"
-        onClose={() => setCreateOpen(false)}
-        footer={<><Button variant="secondary" onClick={() => setCreateOpen(false)}>Отмена</Button><Button onClick={() => void submitCreate()} isLoading={createUser.isPending}>Создать</Button></>}
+        onClose={closeCreateModal}
+        footer={<><Button variant="secondary" onClick={closeCreateModal}>Отмена</Button><Button type="submit" form="admin-create-user-form" isLoading={createUser.isPending}>Создать</Button></>}
       >
-        <div className="grid gap-4 md:grid-cols-2">
-          <Input label="Логин" value={createForm.username} onChange={(event) => setCreateForm((current) => ({ ...current, username: event.target.value }))} />
-          <Input label="Пароль" type="password" value={createForm.password} onChange={(event) => setCreateForm((current) => ({ ...current, password: event.target.value }))} />
-          <Input label="ФИО" value={createForm.full_name} onChange={(event) => setCreateForm((current) => ({ ...current, full_name: event.target.value }))} />
+        <form id="admin-create-user-form" className="grid gap-4 md:grid-cols-2" onSubmit={(event) => void submitCreate(event)} noValidate>
+          <Input label="Логин" value={createForm.username} error={createErrors.username} onChange={(event) => setCreateForm((current) => ({ ...current, username: event.target.value }))} />
+          <Input label="Пароль" type="password" value={createForm.password} error={createErrors.password} onChange={(event) => setCreateForm((current) => ({ ...current, password: event.target.value }))} />
+          <Input label="ФИО" value={createForm.full_name} error={createErrors.full_name} onChange={(event) => setCreateForm((current) => ({ ...current, full_name: event.target.value }))} />
           <SelectField label="Роль пользователя" value={createForm.role} onChange={(value) => setCreateForm((current) => ({ ...current, role: value as UserRole }))}>
             <option value="student">Студент</option>
             <option value="teacher">Преподаватель</option>
@@ -271,7 +352,8 @@ export default function UsersPage() {
             <option value="none">Без группы</option>
             {groupOptions.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
           </SelectField>
-        </div>
+          {createError ? <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-3 text-sm text-danger-ink md:col-span-2">{createError}</div> : null}
+        </form>
       </Modal>
 
       <Modal
@@ -305,7 +387,7 @@ export default function UsersPage() {
           </label>
           {csvPreview.length ? (
             <div>
-              <p className="text-sm font-semibold text-fg">Preview первых 10 строк</p>
+              <p className="text-sm font-semibold text-fg">Предпросмотр первых 10 строк</p>
               <Table
                 data={csvPreview}
                 getRowKey={(row) => row.row}
@@ -345,8 +427,8 @@ export default function UsersPage() {
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         title="Удалить пользователя"
-        description={`Пользователь ${deleteTarget?.full_name ?? ''} будет заблокирован. Это безопасный soft-delete fallback до отдельного backend DELETE endpoint.`}
-        confirmLabel="Delete"
+        description={`Пользователь ${deleteTarget?.full_name ?? ''} будет заблокирован. Это безопасная замена удаления до появления отдельного серверного DELETE endpoint.`}
+        confirmLabel="Удалить"
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (deleteTarget) setUserStatus.mutate({ user: deleteTarget, is_active: false });

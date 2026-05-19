@@ -24,10 +24,10 @@ const itemsByRole: Record<UserRole, SidebarItem[]> = {
     { label: 'Analytics', href: '/teacher/analytics', icon: 'analytics' },
   ],
   admin: [
-    { label: 'Dashboard', href: '/admin', icon: 'admin' },
-    { label: 'Users', href: '/admin/users', icon: 'users' },
-    { label: 'System', href: '/admin/system', icon: 'system' },
-    { label: 'Settings', href: '/admin/settings', icon: 'settings' },
+    { label: 'Панель управления', href: '/admin', icon: 'admin' },
+    { label: 'Пользователи', href: '/admin/users', icon: 'users' },
+    { label: 'Система', href: '/admin/system', icon: 'system' },
+    { label: 'Настройки', href: '/admin/settings', icon: 'settings' },
   ],
 };
 
