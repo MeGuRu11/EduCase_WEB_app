@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
+import { Logo } from '@/components/ui/Logo';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -28,12 +28,9 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-surface p-6">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex items-center justify-center gap-3">
-          <Icon name="logo" className="h-10 w-10" />
-          <div>
-            <h1 className="text-3xl font-bold text-fg">EpiCase</h1>
-            <p className="text-sm text-fg-muted">Учебные клинические кейсы</p>
-          </div>
+        <div className="mb-6 flex flex-col items-center gap-3 text-center">
+          <Logo size="lg" />
+          <p className="text-sm text-fg-muted">Учебные клинические кейсы</p>
         </div>
         <Card title="Вход в систему" description="Используйте учетную запись ВМедА">
           <form className="space-y-4" onSubmit={onSubmit}>

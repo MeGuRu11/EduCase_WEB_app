@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { Logo } from '@/components/ui/Logo';
 import { useAuthStore } from '@/stores/authStore';
 import type { UserRole } from '@/types/user';
 import { cn } from '@/utils/cn';
@@ -36,9 +37,8 @@ export function Sidebar() {
 
   return (
     <aside className="w-64 shrink-0 border-r border-border bg-bg">
-      <div className="flex h-16 items-center gap-3 border-b border-border px-5">
-        <Icon name="logo" className="h-8 w-8" />
-        <span className="text-lg font-semibold text-fg">EpiCase</span>
+      <div className="flex h-16 items-center border-b border-border px-5">
+        <Logo size="sm" />
       </div>
       <nav aria-label="Основная навигация" className="space-y-1 p-3">
         {items.map((item) => (
