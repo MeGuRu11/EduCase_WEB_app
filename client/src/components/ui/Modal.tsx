@@ -1,4 +1,4 @@
-import { useLayoutEffect, type ReactNode, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/utils/cn';
 
@@ -22,6 +22,13 @@ const focusableSelector = [
 ].join(',');
 
 export function Modal({ children, className, footer, initialFocusRef, onClose, open, title }: ModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useLayoutEffect(() => {
     if (!open) return undefined;
 
@@ -31,20 +38,26 @@ export function Modal({ children, className, footer, initialFocusRef, onClose, o
     if (initialFocusRef?.current) {
       initialFocusRef.current.focus();
     } else {
-      const dialog = document.querySelector('[data-modal-dialog]');
-      const first = dialog?.querySelector<HTMLElement>(focusableSelector);
+      const first = dialogRef.current?.querySelector<HTMLElement>(focusableSelector);
       first?.focus();
     }
 
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [initialFocusRef, open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
         return;
       }
 
       if (event.key !== 'Tab') return;
-      const dialog = document.querySelector('[data-modal-dialog]');
-      const focusable = Array.from(dialog?.querySelectorAll<HTMLElement>(focusableSelector) ?? []);
+      const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector) ?? []);
       if (!focusable.length) return;
 
       const first = focusable[0];
@@ -61,10 +74,9 @@ export function Modal({ children, className, footer, initialFocusRef, onClose, o
     document.addEventListener('keydown', onKeyDown);
 
     return () => {
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [initialFocusRef, onClose, open]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -76,6 +88,7 @@ export function Modal({ children, className, footer, initialFocusRef, onClose, o
       }}
     >
       <div
+        ref={dialogRef}
         data-modal-dialog
         role="dialog"
         aria-modal="true"

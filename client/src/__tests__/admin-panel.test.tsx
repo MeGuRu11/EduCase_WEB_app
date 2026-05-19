@@ -251,6 +251,38 @@ describe('Stage 9 admin panel', () => {
     expect(await screen.findByText('Строка 3: Пароль обязателен')).toBeInTheDocument();
   });
 
+  it('UsersPage create user modal keeps focus in edited field while typing', async () => {
+    useAdminHandlers('ok');
+    const user = userEvent.setup();
+    renderWithProviders(<UsersPage />);
+
+    expect(await screen.findByRole('heading', { name: 'Пользователи' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Создать пользователя' }));
+
+    const dialog = screen.getByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Логин'), 'new.admin');
+
+    const fullNameInput = within(dialog).getByLabelText('ФИО');
+    await user.click(fullNameInput);
+    await user.type(fullNameInput, 'Иванов Иван');
+
+    expect(fullNameInput).toHaveFocus();
+    expect(fullNameInput).toHaveValue('Иванов Иван');
+
+    const passwordInput = within(dialog).getByLabelText('Пароль');
+    await user.click(passwordInput);
+    await user.type(passwordInput, 'Admin1234!');
+
+    expect(passwordInput).toHaveFocus();
+    expect(passwordInput).toHaveValue('Admin1234!');
+
+    const roleSelect = within(dialog).getByLabelText('Роль пользователя');
+    await user.selectOptions(roleSelect, 'teacher');
+
+    expect(roleSelect).toHaveFocus();
+    expect(roleSelect).toHaveValue('teacher');
+  });
+
   it('SystemPage requires restore triple-confirm before POSTing restore', async () => {
     useAdminHandlers('ok');
     let restored = '';
