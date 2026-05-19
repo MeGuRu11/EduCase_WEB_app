@@ -23,8 +23,8 @@ import { formatDateTime } from '@/utils/formatters';
 
 function SelectField({ children, label, onChange, value }: { children: ReactNode; label: string; onChange: (value: string) => void; value: string }) {
   return (
-    <label className="block space-y-1.5 text-sm font-medium text-fg">
-      <span>{label}</span>
+    <label className="flex items-center gap-3 text-sm font-medium text-fg">
+      <span className="shrink-0">{label}</span>
       <select
         className="h-10 rounded border border-border bg-bg px-3 text-sm text-fg focus:border-royal focus:outline-none focus:ring-2 focus:ring-royal/40"
         value={value}
@@ -112,7 +112,7 @@ export default function SystemPage() {
       <header>
         <p className="text-sm font-semibold uppercase tracking-wide text-danger-ink">АДМИНИСТРАТОР: СИСТЕМА</p>
         <h1 className="text-3xl font-bold text-fg">Система</h1>
-        <p className="mt-1 text-sm text-fg-muted">Sysinfo, backups, restore orchestration и журналы.</p>
+        <p className="mt-1 text-sm text-fg-muted">Информация о системе, резервные копии, восстановление и журналы.</p>
       </header>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5" aria-label="Сведения о системе">
@@ -123,7 +123,7 @@ export default function SystemPage() {
         <Card className="p-5"><p className="text-sm text-fg-muted">Обслуживание</p><p className="mt-2"><Badge variant={sysinfo.data.maintenance_mode ? 'danger' : 'success'}>{sysinfo.data.maintenance_mode ? 'Включён' : 'Выключен'}</Badge></p></Card>
       </section>
 
-      <Card title="Бэкапы" description="Restore запускается только после triple-confirm.">
+      <Card title="Бэкапы" description="Восстановление запускается только после тройного подтверждения.">
         <div className="mb-4 flex justify-end">
           <Button onClick={() => createBackup.mutate()} isLoading={createBackup.isPending}>Создать бэкап</Button>
         </div>

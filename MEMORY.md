@@ -1,9 +1,9 @@
 # EpiCase — Project Memory
 
 ## Last Updated
-- Date: 2026-05-18
-- Agent: Claude Opus 4.7
-- Stage: STAGE 10 closed — Release v1.0.0 ready for VMedA
+- Date: 2026-05-19
+- Agent: Claude Sonnet 4.6 (claude.ai)
+- Stage: POST-RELEASE — UI fixes (локализация admin, фокус модалки, Tailwind v4 плагин, логотип, create_admin скрипт)
         (183 backend tests green + 107 frontend tests green; ruff, tsc, vitest,
          verify clean; OWASP §B.2.3 audit 13/13 pass; user guides + DEPLOY + security
          report written; tag v1.0.0 local; package-release.sh + build-images.sh
