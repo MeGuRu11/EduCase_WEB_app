@@ -16,9 +16,21 @@ class Base(DeclarativeBase):
 
 
 def get_db() -> Iterator[Session]:
+    """Request-scoped session.
+
+    Services across the codebase use ``db.flush()`` exclusively (no per-service
+    ``commit``), relying on this dependency to commit at the end of a successful
+    request. Without the explicit commit here, ``Session.close()`` with
+    ``autocommit=False`` performs an implicit rollback — every POST/PATCH/PUT
+    silently loses its writes in production.
+    """
     db = SessionLocal()
     try:
         yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
