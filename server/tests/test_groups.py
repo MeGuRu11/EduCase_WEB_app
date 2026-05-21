@@ -189,3 +189,47 @@ def test_delete_missing_group_returns_404(
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert r.status_code == 404
+
+
+def test_teacher_in_multiple_groups(
+    client: TestClient, admin_token: str, teacher_user: User
+) -> None:
+    """Один преподаватель может быть привязан к нескольким группам одновременно
+    (TeacherGroup — composite PK; 409 фиксируется только на дубль внутри ОДНОЙ группы)."""
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    g1 = _create_group(client, admin_token, "Группа A")
+    g2 = _create_group(client, admin_token, "Группа B")
+
+    r1 = client.post(
+        f"/api/groups/{g1['id']}/assign-teacher",
+        headers=headers,
+        json={"teacher_id": teacher_user.id},
+    )
+    assert r1.status_code == 200, r1.text
+
+    r2 = client.post(
+        f"/api/groups/{g2['id']}/assign-teacher",
+        headers=headers,
+        json={"teacher_id": teacher_user.id},
+    )
+    assert r2.status_code == 200, r2.text
+
+    # Обе группы видят преподавателя
+    listing = client.get("/api/groups/", headers=headers).json()
+    in_a = next(g for g in listing if g["id"] == g1["id"])
+    in_b = next(g for g in listing if g["id"] == g2["id"])
+    assert any(t["id"] == teacher_user.id for t in in_a["teachers"])
+    assert any(t["id"] == teacher_user.id for t in in_b["teachers"])
+
+    # Снять с группы A — остаётся в B
+    r_remove = client.delete(
+        f"/api/groups/{g1['id']}/teachers/{teacher_user.id}",
+        headers=headers,
+    )
+    assert r_remove.status_code == 200
+
+    listing_after = client.get("/api/groups/", headers=headers).json()
+    in_a_after = next(g for g in listing_after if g["id"] == g1["id"])
+    in_b_after = next(g for g in listing_after if g["id"] == g2["id"])
+    assert all(t["id"] != teacher_user.id for t in in_a_after["teachers"])
+    assert any(t["id"] == teacher_user.id for t in in_b_after["teachers"])
