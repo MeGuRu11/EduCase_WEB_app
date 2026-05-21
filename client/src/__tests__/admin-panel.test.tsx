@@ -574,6 +574,120 @@ describe('Stage 9 admin panel', () => {
     await waitFor(() => expect(addedFor).toEqual({ groupId: 3, userId: 5 }));
   });
 
+  it('GroupsPage teachers modal lists ALL active teachers — not filtered globally by membership in other groups', async () => {
+    // Teacher #2 is assigned to group A. Opening teachers modal for group B
+    // must still show teacher #2 as a candidate (many-to-many invariant).
+    useAdminHandlers('ok');
+    const groupA = { id: 10, name: 'Группа A', description: null, teachers: [{ id: 2, full_name: 'Петров П.П.' }], student_count: 0, is_active: true, created_at: now };
+    const groupB = { id: 11, name: 'Группа B', description: null, teachers: [], student_count: 0, is_active: true, created_at: now };
+    server.use(
+      http.get('/api/groups/', () => HttpResponse.json([groupA, groupB])),
+      http.get('/api/users/', () =>
+        HttpResponse.json({
+          items: [
+            { id: 2, username: 'petrov.p', full_name: 'Петров П.П.', role: 'teacher', role_id: 2, group_id: null, group_name: null, avatar_url: null, is_active: true, must_change_password: false, last_login_at: null, created_at: now },
+            { id: 9, username: 'sokolov.s', full_name: 'Соколов С.С.', role: 'teacher', role_id: 2, group_id: null, group_name: null, avatar_url: null, is_active: true, must_change_password: false, last_login_at: null, created_at: now },
+          ],
+          total: 2,
+          page: 1,
+          pages: 1,
+          per_page: 100,
+        }),
+      ),
+    );
+
+    renderWithProviders(<AdminGroupsPage />);
+
+    await screen.findByText('Группа B');
+    // Открыть модалку «Преподаватели» для группы B (вторая кнопка в строке).
+    const teachersButtons = await screen.findAllByRole('button', { name: 'Преподаватели' });
+    await userEvent.click(teachersButtons[1]);
+
+    const dialog = await screen.findByRole('dialog');
+    const picker = within(dialog).getByLabelText('Преподаватель');
+    const optionValues = within(picker).getAllByRole('option').map((opt) => opt.getAttribute('value'));
+    // Teacher уже в группе A — должен оставаться кандидатом для группы B.
+    expect(optionValues).toContain('2');
+    // Свободный преподаватель тоже на месте.
+    expect(optionValues).toContain('9');
+  });
+
+  it('GroupsPage teachers modal hides only teachers already in THIS group (not globally)', async () => {
+    useAdminHandlers('ok');
+    const groupA = { id: 20, name: 'Группа A', description: null, teachers: [{ id: 2, full_name: 'Петров П.П.' }], student_count: 0, is_active: true, created_at: now };
+    const groupB = { id: 21, name: 'Группа B', description: null, teachers: [{ id: 9, full_name: 'Соколов С.С.' }], student_count: 0, is_active: true, created_at: now };
+    server.use(
+      http.get('/api/groups/', () => HttpResponse.json([groupA, groupB])),
+      http.get('/api/users/', () =>
+        HttpResponse.json({
+          items: [
+            { id: 2, username: 'petrov.p', full_name: 'Петров П.П.', role: 'teacher', role_id: 2, group_id: null, group_name: null, avatar_url: null, is_active: true, must_change_password: false, last_login_at: null, created_at: now },
+            { id: 9, username: 'sokolov.s', full_name: 'Соколов С.С.', role: 'teacher', role_id: 2, group_id: null, group_name: null, avatar_url: null, is_active: true, must_change_password: false, last_login_at: null, created_at: now },
+          ],
+          total: 2,
+          page: 1,
+          pages: 1,
+          per_page: 100,
+        }),
+      ),
+    );
+
+    renderWithProviders(<AdminGroupsPage />);
+
+    await screen.findByText('Группа A');
+    const teachersButtons = await screen.findAllByRole('button', { name: 'Преподаватели' });
+    await userEvent.click(teachersButtons[0]);
+
+    const dialog = await screen.findByRole('dialog');
+    const picker = within(dialog).getByLabelText('Преподаватель');
+    const optionValues = within(picker).getAllByRole('option').map((opt) => opt.getAttribute('value'));
+    // Teacher #2 уже в этой группе A — НЕ должен быть в выпадающем.
+    expect(optionValues).not.toContain('2');
+    // Teacher #9 в другой группе — должен оставаться кандидатом.
+    expect(optionValues).toContain('9');
+  });
+
+  it('GroupsPage assigns a teacher to a second group via POST /api/groups/{id}/assign-teacher', async () => {
+    useAdminHandlers('ok');
+    const groupA = { id: 30, name: 'Группа A', description: null, teachers: [{ id: 2, full_name: 'Петров П.П.' }], student_count: 0, is_active: true, created_at: now };
+    const groupB = { id: 31, name: 'Группа B', description: null, teachers: [], student_count: 0, is_active: true, created_at: now };
+    server.use(
+      http.get('/api/groups/', () => HttpResponse.json([groupA, groupB])),
+      http.get('/api/users/', () =>
+        HttpResponse.json({
+          items: [
+            { id: 2, username: 'petrov.p', full_name: 'Петров П.П.', role: 'teacher', role_id: 2, group_id: null, group_name: null, avatar_url: null, is_active: true, must_change_password: false, last_login_at: null, created_at: now },
+          ],
+          total: 1,
+          page: 1,
+          pages: 1,
+          per_page: 100,
+        }),
+      ),
+    );
+    let assignedFor: { groupId: number; teacherId: number } | null = null;
+    server.use(
+      http.post('/api/groups/:groupId/assign-teacher', async ({ params, request }) => {
+        const body = (await request.json()) as { teacher_id: number };
+        assignedFor = { groupId: Number(params.groupId), teacherId: body.teacher_id };
+        return HttpResponse.json({ status: 'ok' });
+      }),
+    );
+
+    renderWithProviders(<AdminGroupsPage />);
+
+    await screen.findByText('Группа B');
+    const teachersButtons = await screen.findAllByRole('button', { name: 'Преподаватели' });
+    await userEvent.click(teachersButtons[1]);
+
+    const dialog = await screen.findByRole('dialog');
+    const picker = within(dialog).getByLabelText('Преподаватель');
+    await userEvent.selectOptions(picker, '2');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Назначить' }));
+
+    await waitFor(() => expect(assignedFor).toEqual({ groupId: 31, teacherId: 2 }));
+  });
+
   it('GroupsPage deletes a group via DELETE /api/groups/{id} after confirm', async () => {
     useAdminHandlers('ok');
     const group = { id: 7, name: 'Удаляемая', description: null, teachers: [], student_count: 0, is_active: true, created_at: now };

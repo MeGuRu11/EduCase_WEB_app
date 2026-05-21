@@ -251,6 +251,9 @@ class GroupService:
             )
         db.add(TeacherGroup(teacher_id=teacher_id, group_id=group.id))
         db.flush()
+        # Force re-read of teacher_links on next access so callers within the same
+        # session (and joined eager loads) see the new link without manual reload.
+        db.expire(group, ["teacher_links"])
         log_action(
             db,
             actor_id=actor.id if actor else None,
@@ -284,6 +287,8 @@ class GroupService:
             )
         db.delete(link)
         db.flush()
+        # Expire collection so subsequent reads (incl. joinedload) see the deletion.
+        db.expire(group, ["teacher_links"])
         log_action(
             db,
             actor_id=actor.id if actor else None,
