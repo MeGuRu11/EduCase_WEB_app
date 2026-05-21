@@ -19,7 +19,7 @@ export default function GroupsPage() {
   const groups = useQuery({ queryKey: ['groups'], queryFn: () => groupsApi.list() });
   const stats = useTeacherScenarioStats();
 
-  if (groups.isLoading || stats.isLoading) return <Skeleton rows={6} label="Loading table" />;
+  if (groups.isLoading || stats.isLoading) return <Skeleton rows={6} label="Загрузка..." />;
 
   if (groups.isError || stats.isError) {
     return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">Не удалось загрузить группы.</div>;
@@ -30,7 +30,7 @@ export default function GroupsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-purple-ink">T-6 Groups</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-purple-ink">Преподаватель</p>
         <h1 className="text-3xl font-bold text-fg">Мои группы</h1>
         <p className="mt-1 text-sm text-fg-muted">Группы, доступные преподавателю для аналитики и назначений.</p>
       </header>

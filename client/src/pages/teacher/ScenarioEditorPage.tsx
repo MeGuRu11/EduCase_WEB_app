@@ -11,11 +11,11 @@ import { useSaveScenarioGraph, useScenario } from '@/hooks/useScenarios';
 import { useScenarioEditorStore } from '@/stores/scenarioEditorStore';
 
 function SaveIndicator({ isSaving, lastSaveAt }: { isSaving: boolean; lastSaveAt: string | null }) {
-  if (isSaving) return <span className="text-sm font-medium text-warning-ink">● Saving...</span>;
-  if (!lastSaveAt) return <span className="text-sm text-fg-muted">No saved changes yet</span>;
+  if (isSaving) return <span className="text-sm font-medium text-warning-ink">● Сохранение...</span>;
+  if (!lastSaveAt) return <span className="text-sm text-fg-muted">Нет сохранённых изменений</span>;
   return (
     <span className="text-sm font-medium text-success-ink">
-      ✓ Saved {new Date(lastSaveAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      ✓ Сохранено {new Date(lastSaveAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
     </span>
   );
 }
@@ -37,14 +37,14 @@ export default function ScenarioEditorPage() {
     if (scenarioQuery.data) loadGraph(scenarioQuery.data);
   }, [loadGraph, scenarioQuery.data]);
 
-  if (scenarioQuery.isLoading) return <Skeleton rows={8} label="Loading scenario editor" />;
+  if (scenarioQuery.isLoading) return <Skeleton rows={8} label="Загрузка..." />;
   if (scenarioQuery.isError || !scenarioQuery.data) {
     return (
       <EmptyState
         icon="warn"
-        title="Scenario editor unavailable"
-        description="The scenario could not be loaded."
-        action={{ label: 'Back to scenarios', href: '/teacher/scenarios' }}
+        title="Конструктор недоступен"
+        description="Сценарий не удалось загрузить."
+        action={{ label: 'Назад к сценариям', href: '/teacher/scenarios' }}
       />
     );
   }
@@ -58,17 +58,17 @@ export default function ScenarioEditorPage() {
     <div className="flex h-[calc(100vh-8rem)] flex-col gap-4">
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-bg px-4 py-3">
         <div>
-          <p className="text-sm text-fg-muted">Scenario editor</p>
+          <p className="text-sm text-fg-muted">Конструктор сценария</p>
           <h1 className="text-2xl font-bold text-fg">{scenarioQuery.data.title}</h1>
         </div>
         <div className="flex items-center gap-3">
           <SaveIndicator isSaving={isSaving || saveMutation.isPending} lastSaveAt={lastSaveAt} />
           {autoSaveError ? <span className="text-sm text-danger-ink">{autoSaveError}</span> : null}
           <Button variant="secondary" onClick={onManualSave} isLoading={saveMutation.isPending}>
-            Save
+            Сохранить
           </Button>
           <Button variant="accent" onClick={() => navigate(`/teacher/scenarios/${id}/preview`)}>
-            Preview
+            Предпросмотр
           </Button>
         </div>
       </header>

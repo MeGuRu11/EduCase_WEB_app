@@ -144,7 +144,7 @@ export default function MyCases() {
     return matchesCategory && matchesStatus && matchesTopic;
   });
 
-  if (scenarios.isLoading || attempts.isLoading) return <Skeleton rows={6} label="Loading table" />;
+  if (scenarios.isLoading || attempts.isLoading) return <Skeleton rows={6} label="Загрузка..." />;
 
   if (scenarios.isError || attempts.isError) {
     return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">Не удалось загрузить кейсы.</div>;
@@ -153,7 +153,7 @@ export default function MyCases() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-royal-ink">S-2 Assigned cases</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-royal-ink">Назначенные кейсы</p>
         <h1 className="text-3xl font-bold text-fg">Мои кейсы</h1>
       </header>
 

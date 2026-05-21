@@ -32,16 +32,16 @@ export default function TeacherDashboard() {
     attempts: Math.max(0, Math.round(activeAttempts / 7) + (index % 3)),
   }));
 
-  if (statsQuery.isLoading) return <Skeleton rows={6} label="Loading table" />;
+  if (statsQuery.isLoading) return <Skeleton rows={6} label="Загрузка..." />;
 
   if (statsQuery.isError) {
-    return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">Не удалось загрузить teacher dashboard.</div>;
+    return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">Не удалось загрузить данные дашборда.</div>;
   }
 
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-purple-ink">Teacher dashboard</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-purple-ink">Преподаватель</p>
         <h1 className="text-3xl font-bold text-fg">Панель преподавателя</h1>
         <p className="mt-1 text-sm text-fg-muted">Сводка по сценариям, группам и сложным узлам.</p>
       </header>

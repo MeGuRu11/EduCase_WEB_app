@@ -107,7 +107,7 @@ function HeatmapTab({ heatmap, isLoading }: { heatmap: ReturnType<typeof usePath
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const selectedNode = heatmap?.nodes.find((node) => node.id === selectedNodeId) ?? null;
 
-  if (isLoading) return <Skeleton rows={5} label="Loading table" />;
+  if (isLoading) return <Skeleton rows={5} label="Загрузка..." />;
   if (!heatmap || !heatmap.nodes.length) return <EmptyState icon="analytics" title="Данных тепловой карты пока нет" />;
 
   return (
@@ -240,7 +240,7 @@ export default function AnalyticsPage() {
     downloadBlob(blob, `analytics.${format}`);
   }
 
-  if (statsQuery.isLoading) return <Skeleton rows={6} label="Loading table" />;
+  if (statsQuery.isLoading) return <Skeleton rows={6} label="Загрузка..." />;
 
   if (statsQuery.isError) {
     return <div role="alert" className="rounded border border-danger/30 bg-danger/10 p-4 text-danger-ink">Не удалось загрузить аналитику.</div>;

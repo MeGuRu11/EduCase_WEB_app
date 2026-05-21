@@ -1,7 +1,7 @@
 import { act, type DragEvent, type MouseEvent, type ReactNode } from 'react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
-import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Position } from '@xyflow/react';
@@ -404,7 +404,7 @@ describe('teacher scenario pages', () => {
     expect(await screen.findByText('Draft case')).toBeInTheDocument();
     expect(screen.getByText('Published case')).toBeInTheDocument();
 
-    await userEvent.selectOptions(screen.getByLabelText('Status filter'), 'published');
+    await userEvent.selectOptions(screen.getByLabelText('Фильтр по статусу'), 'published');
 
     await waitFor(() => expect(screen.queryByText('Draft case')).not.toBeInTheDocument());
     expect(screen.getByText('Published case')).toBeInTheDocument();
@@ -415,12 +415,13 @@ describe('teacher scenario pages', () => {
     renderWithProviders(<MyScenarios />);
 
     await screen.findByText('Draft case');
-    await user.click(screen.getAllByRole('button', { name: 'Duplicate' })[0]);
-    await user.click(screen.getAllByRole('button', { name: 'Archive' })[0]);
-    await user.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
-    await user.click(screen.getByRole('button', { name: 'Confirm delete' }));
+    await user.click(screen.getAllByRole('button', { name: 'Дублировать' })[0]);
+    await user.click(screen.getAllByRole('button', { name: 'В архив' })[0]);
+    await user.click(screen.getAllByRole('button', { name: 'Удалить' })[0]);
+    const dialog = screen.getByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Да, удалить' }));
 
-    await waitFor(() => expect(screen.getByText('Action completed')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Выполнено')).toBeInTheDocument());
   });
 
   it('shows preview mode banner and teacher-only insight labels', async () => {
@@ -439,9 +440,9 @@ describe('teacher scenario pages', () => {
       { route: '/teacher/scenarios/7/preview' },
     );
 
-    expect(await screen.findByText(/Preview mode/)).toBeInTheDocument();
-    expect(screen.getByText('Insights')).toBeInTheDocument();
-    expect(screen.getByText('Correct value')).toBeInTheDocument();
+    expect(await screen.findByText(/Режим предпросмотра/)).toBeInTheDocument();
+    expect(screen.getByText('Подсказки преподавателя')).toBeInTheDocument();
+    expect(screen.getByText('Правильный ответ')).toBeInTheDocument();
     expect(screen.getByText('Hepatitis A')).toBeInTheDocument();
     expect(startedAttempts).toBe(0);
   });

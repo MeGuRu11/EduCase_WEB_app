@@ -77,7 +77,7 @@ describe('auth pages and routing', () => {
     await userEvent.type(screen.getByLabelText('Пароль'), 'Password1!');
     await userEvent.click(screen.getByRole('button', { name: 'Войти' }));
 
-    expect(await screen.findByText(/Student dashboard/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Обучаемый/i)).toBeInTheDocument();
     expect(useAuthStore.getState().accessToken).toBe('access-token');
   });
 
@@ -108,7 +108,7 @@ describe('auth pages and routing', () => {
     await userEvent.type(screen.getByLabelText('Новый пароль'), 'Password2!');
     await userEvent.click(screen.getByRole('button', { name: 'Сменить пароль' }));
 
-    expect(await screen.findByText(/Student dashboard/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Обучаемый/i)).toBeInTheDocument();
     expect(useAuthStore.getState().user?.must_change_password).toBe(false);
   });
 
@@ -261,6 +261,6 @@ describe('auth pages and routing', () => {
 
     renderWithProviders(<App />, { route: '/' });
 
-    await waitFor(() => expect(screen.getByText(/Teacher dashboard/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Преподаватель/i)).toBeInTheDocument());
   });
 });
