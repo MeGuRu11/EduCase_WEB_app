@@ -194,8 +194,8 @@ describe('auth pages and routing', () => {
 
     renderWithProviders(<Sidebar />, { route: '/teacher' });
 
-    expect(screen.getByRole('link', { name: /Scenarios/i })).toHaveAttribute('href', '/teacher/scenarios');
-    expect(screen.queryByRole('link', { name: /Users/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Мои сценарии/i })).toHaveAttribute('href', '/teacher/scenarios');
+    expect(screen.queryByRole('link', { name: /Пользователи/i })).not.toBeInTheDocument();
   });
 
   it('topbar shows user and logs out', async () => {
