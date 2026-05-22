@@ -43,13 +43,13 @@ export default function StudentDashboard() {
   }));
 
   if (dashboard.isLoading) {
-    return <Skeleton rows={6} label="Loading table" />;
+    return <Skeleton rows={6} label="Загрузка..." />;
   }
 
   if (dashboard.isError) {
     return (
       <div role="alert" className="rounded-lg border border-danger/30 bg-danger/10 p-4 text-danger-ink">
-        Не удалось загрузить student dashboard.
+        Не удалось загрузить данные дашборда.
       </div>
     );
   }
@@ -61,7 +61,7 @@ export default function StudentDashboard() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-royal-ink">Student dashboard</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-royal-ink">Обучаемый</p>
         <h1 className="text-3xl font-bold text-fg">Панель обучаемого</h1>
         <p className="mt-1 text-sm text-fg-muted">Прогресс по назначенным клиническим кейсам.</p>
       </header>

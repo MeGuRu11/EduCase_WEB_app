@@ -13,7 +13,7 @@ export default function CasePlayerPage() {
   }, [reset]);
 
   if (!Number.isFinite(id)) {
-    return <EmptyState icon="warn" title="Invalid case id" />;
+    return <EmptyState icon="warn" title="Некорректный идентификатор кейса" />;
   }
 
   return (

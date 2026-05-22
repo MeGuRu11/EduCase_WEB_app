@@ -1,7 +1,7 @@
 import { act, type DragEvent, type MouseEvent, type ReactNode } from 'react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
-import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Position } from '@xyflow/react';
@@ -262,7 +262,7 @@ describe('scenario node palette and inspector', () => {
     const writes = new Map<string, string>();
     render(<NodePalette />);
 
-    fireEvent.dragStart(screen.getByRole('button', { name: /decision/i }), {
+    fireEvent.dragStart(screen.getByRole('button', { name: /решение/i }), {
       dataTransfer: {
         effectAllowed: '',
         setData: (key: string, value: string) => writes.set(key, value),
@@ -273,12 +273,12 @@ describe('scenario node palette and inspector', () => {
   });
 
   it.each([
-    ['start', 'Start node'],
-    ['data', 'Content HTML'],
-    ['decision', 'Decision options'],
-    ['form', 'Form template'],
-    ['text_input', 'Keywords'],
-    ['final', 'Final result'],
+    ['start', 'Начальный узел'],
+    ['data', 'Содержимое HTML'],
+    ['decision', 'Варианты ответа'],
+    ['form', 'Шаблон формы'],
+    ['text_input', 'Ключевые слова'],
+    ['final', 'Итоговый результат'],
   ] as const)('renders %s inspector controls', (type, expectedLabel) => {
     const node = useScenarioEditorStore.getState().addNode(type, { x: 0, y: 0 });
     useScenarioEditorStore.getState().selectNode(node.id);
@@ -286,7 +286,7 @@ describe('scenario node palette and inspector', () => {
     render(<NodeInspector />);
 
     expect(screen.getAllByText(expectedLabel).length).toBeGreaterThan(0);
-    expect(screen.getByLabelText('Title')).toBeInTheDocument();
+    expect(screen.getByLabelText('Заголовок')).toBeInTheDocument();
   });
 
   it('updates selected node title from the inspector', async () => {
@@ -295,8 +295,8 @@ describe('scenario node palette and inspector', () => {
     useScenarioEditorStore.getState().selectNode(node.id);
     render(<NodeInspector />);
 
-    await user.clear(screen.getByLabelText('Title'));
-    await user.type(screen.getByLabelText('Title'), 'Updated patient data');
+    await user.clear(screen.getByLabelText('Заголовок'));
+    await user.type(screen.getByLabelText('Заголовок'), 'Updated patient data');
 
     expect(useScenarioEditorStore.getState().nodes[0].title).toBe('Updated patient data');
   });
@@ -307,11 +307,11 @@ describe('scenario node palette and inspector', () => {
     useScenarioEditorStore.getState().selectNode(node.id);
     render(<NodeInspector />);
 
-    await user.click(screen.getByRole('button', { name: 'Add option' }));
-    expect(screen.getByLabelText('Option 1')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Добавить вариант' }));
+    expect(screen.getByLabelText('Вариант 1')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Remove option 1' }));
-    expect(screen.queryByLabelText('Option 1')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Удалить вариант 1' }));
+    expect(screen.queryByLabelText('Вариант 1')).not.toBeInTheDocument();
   });
 });
 
@@ -393,9 +393,9 @@ describe('teacher scenario pages', () => {
       { route: '/teacher/scenarios/7/edit' },
     );
 
-    expect(await screen.findByText('Node palette')).toBeInTheDocument();
+    expect(await screen.findByText('Палитра узлов')).toBeInTheDocument();
     expect((await screen.findAllByText('Start')).length).toBeGreaterThan(0);
-    expect(screen.getByText('Inspector')).toBeInTheDocument();
+    expect(screen.getByText('Инспектор')).toBeInTheDocument();
   });
 
   it('lists scenarios and filters by status', async () => {
@@ -404,7 +404,7 @@ describe('teacher scenario pages', () => {
     expect(await screen.findByText('Draft case')).toBeInTheDocument();
     expect(screen.getByText('Published case')).toBeInTheDocument();
 
-    await userEvent.selectOptions(screen.getByLabelText('Status filter'), 'published');
+    await userEvent.selectOptions(screen.getByLabelText('Фильтр по статусу'), 'published');
 
     await waitFor(() => expect(screen.queryByText('Draft case')).not.toBeInTheDocument());
     expect(screen.getByText('Published case')).toBeInTheDocument();
@@ -415,12 +415,13 @@ describe('teacher scenario pages', () => {
     renderWithProviders(<MyScenarios />);
 
     await screen.findByText('Draft case');
-    await user.click(screen.getAllByRole('button', { name: 'Duplicate' })[0]);
-    await user.click(screen.getAllByRole('button', { name: 'Archive' })[0]);
-    await user.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
-    await user.click(screen.getByRole('button', { name: 'Confirm delete' }));
+    await user.click(screen.getAllByRole('button', { name: 'Дублировать' })[0]);
+    await user.click(screen.getAllByRole('button', { name: 'В архив' })[0]);
+    await user.click(screen.getAllByRole('button', { name: 'Удалить' })[0]);
+    const dialog = screen.getByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Да, удалить' }));
 
-    await waitFor(() => expect(screen.getByText('Action completed')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Выполнено')).toBeInTheDocument());
   });
 
   it('shows preview mode banner and teacher-only insight labels', async () => {
@@ -439,9 +440,9 @@ describe('teacher scenario pages', () => {
       { route: '/teacher/scenarios/7/preview' },
     );
 
-    expect(await screen.findByText(/Preview mode/)).toBeInTheDocument();
-    expect(screen.getByText('Insights')).toBeInTheDocument();
-    expect(screen.getByText('Correct value')).toBeInTheDocument();
+    expect(await screen.findByText(/Режим предпросмотра/)).toBeInTheDocument();
+    expect(screen.getByText('Подсказки преподавателя')).toBeInTheDocument();
+    expect(screen.getByText('Правильный ответ')).toBeInTheDocument();
     expect(screen.getByText('Hepatitis A')).toBeInTheDocument();
     expect(startedAttempts).toBe(0);
   });

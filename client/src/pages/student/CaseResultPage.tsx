@@ -8,14 +8,14 @@ export default function CaseResultPage() {
   const id = Number(useParams().id);
   const { data, isLoading, isError } = useAttemptResult(Number.isFinite(id) ? id : null);
 
-  if (isLoading) return <Skeleton rows={6} label="Loading result" />;
+  if (isLoading) return <Skeleton rows={6} label="Загрузка..." />;
   if (isError || !data) {
     return (
       <EmptyState
         icon="warn"
-        title="Result unavailable"
-        description="This attempt could not be loaded."
-        action={{ label: 'My results', href: '/student/results' }}
+        title="Результат недоступен"
+        description="Попытка не найдена."
+        action={{ label: 'Мои результаты', href: '/student/results' }}
       />
     );
   }

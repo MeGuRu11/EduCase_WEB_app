@@ -37,7 +37,7 @@ function fieldValues(node: TeacherPreviewNode) {
   return fields
     .filter((field): field is JsonObject => Boolean(field) && typeof field === 'object')
     .map((field) => ({
-      label: String(field.label ?? field.id ?? 'Field'),
+      label: String(field.label ?? field.id ?? 'Поле'),
       value: field[SENSITIVE_FORM_VALUE_KEY],
     }))
     .filter((field) => field.value !== undefined);
@@ -50,22 +50,22 @@ function Insights({ nodes, edges }: { nodes: TeacherPreviewNode[]; edges: Teache
   return (
     <aside className="space-y-4 rounded-xl border border-warning/30 bg-warning/10 p-4">
       <div>
-        <p className="text-sm font-semibold text-warning-ink">Insights</p>
-        <p className="text-xs text-fg-muted">Teacher-only answer metadata for preview.</p>
+        <p className="text-sm font-semibold text-warning-ink">Подсказки преподавателя</p>
+        <p className="text-xs text-fg-muted">Метаданные ответов, видны только преподавателю.</p>
       </div>
       <div className="space-y-2">
-        <p className="text-sm font-medium text-fg">Edges</p>
+        <p className="text-sm font-medium text-fg">Переходы</p>
         {edges.map((edge) => (
           <div key={edge.id} className="flex items-center justify-between rounded bg-bg px-3 py-2 text-sm">
             <span>{edge.label ?? edge.id}</span>
             <Badge variant={edge.data[ANSWER_EDGE_KEY] ? 'success' : 'danger'}>
-              {edge.data[ANSWER_EDGE_KEY] ? 'Expected path' : 'Distractor'}
+              {edge.data[ANSWER_EDGE_KEY] ? 'Верный путь' : 'Отвлекающий'}
             </Badge>
           </div>
         ))}
       </div>
       <div className="space-y-2">
-        <p className="text-sm font-medium text-fg">Correct value</p>
+        <p className="text-sm font-medium text-fg">Правильный ответ</p>
         {formValues.length ? (
           formValues.map((field) => (
             <div key={field.label} className="rounded bg-bg px-3 py-2 text-sm">
@@ -74,19 +74,19 @@ function Insights({ nodes, edges }: { nodes: TeacherPreviewNode[]; edges: Teache
             </div>
           ))
         ) : (
-          <p className="text-sm text-fg-muted">No form answers in this graph.</p>
+          <p className="text-sm text-fg-muted">Форм с ответами нет.</p>
         )}
       </div>
       <div className="space-y-2">
-        <p className="text-sm font-medium text-fg">Keywords</p>
+        <p className="text-sm font-medium text-fg">Ключевые слова</p>
         {textNodes.length ? (
           textNodes.map((node) => (
             <div key={node.id} className="rounded bg-bg px-3 py-2 text-sm">
-              {Array.isArray(node.data.keywords) ? node.data.keywords.join(', ') : 'No keywords'}
+              {Array.isArray(node.data.keywords) ? node.data.keywords.join(', ') : 'Ключевые слова не заданы'}
             </div>
           ))
         ) : (
-          <p className="text-sm text-fg-muted">No text input nodes.</p>
+          <p className="text-sm text-fg-muted">Узлов с текстовым вводом нет.</p>
         )}
       </div>
     </aside>
@@ -98,14 +98,14 @@ export default function ScenarioPreview() {
   const navigate = useNavigate();
   const scenario = useScenario(Number.isFinite(id) ? id : null);
 
-  if (scenario.isLoading) return <Skeleton rows={8} label="Loading preview" />;
+  if (scenario.isLoading) return <Skeleton rows={8} label="Загрузка..." />;
   if (scenario.isError || !scenario.data) {
     return (
       <EmptyState
         icon="warn"
-        title="Preview unavailable"
-        description="The scenario could not be loaded."
-        action={{ label: 'Back to editor', href: `/teacher/scenarios/${id}/edit` }}
+        title="Предпросмотр недоступен"
+        description="Сценарий не удалось загрузить."
+        action={{ label: 'Назад к редактору', href: `/teacher/scenarios/${id}/edit` }}
       />
     );
   }
@@ -115,11 +115,11 @@ export default function ScenarioPreview() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3">
         <div>
-          <p className="text-sm font-semibold text-warning-ink">Preview mode - answers are not saved</p>
+          <p className="text-sm font-semibold text-warning-ink">Режим предпросмотра — ответы не сохраняются</p>
           <h1 className="text-2xl font-bold text-fg">{scenario.data.title}</h1>
         </div>
         <Button variant="secondary" onClick={() => navigate(`/teacher/scenarios/${id}/edit`)}>
-          Exit preview
+          Выйти из предпросмотра
         </Button>
       </div>
 

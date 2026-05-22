@@ -228,7 +228,7 @@ describe('Stage 8 dashboards and analytics', () => {
     useStage8Handlers();
     renderWithProviders(<StudentDashboard />);
 
-    expect(await screen.findByText('Student dashboard')).toBeInTheDocument();
+    expect(await screen.findByText('Обучаемый')).toBeInTheDocument();
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('78%')).toBeInTheDocument();
     expect(screen.getByTestId('line-chart')).toBeInTheDocument();
@@ -239,7 +239,7 @@ describe('Stage 8 dashboards and analytics', () => {
     server.use(http.get('/api/analytics/student/dashboard', () => new HttpResponse(null, { status: 500 })));
     renderWithProviders(<StudentDashboard />);
 
-    expect(screen.getByLabelText('Loading table')).toBeInTheDocument();
+    expect(screen.getByLabelText('Загрузка...')).toBeInTheDocument();
     expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось загрузить');
   });
 
@@ -270,8 +270,8 @@ describe('Stage 8 dashboards and analytics', () => {
 
     expect(await screen.findByRole('heading', { name: 'Мои результаты' })).toBeInTheDocument();
     await userEvent.selectOptions(screen.getByLabelText('Статус'), 'completed');
-    expect(screen.getByText('Пневмония')).toBeInTheDocument();
-    expect(screen.queryByText('Гепатит')).not.toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: 'Пневмония' })).toBeInTheDocument();
+    expect(screen.queryByRole('cell', { name: 'Гепатит' })).not.toBeInTheDocument();
 
     await userEvent.selectOptions(screen.getByLabelText('Сортировка'), 'score_desc');
     expect(screen.getByRole('link', { name: 'Открыть' })).toHaveAttribute('href', '/student/attempts/11/result');
@@ -281,7 +281,7 @@ describe('Stage 8 dashboards and analytics', () => {
     useStage8Handlers();
     renderWithProviders(<TeacherDashboard />);
 
-    expect(await screen.findByText('Teacher dashboard')).toBeInTheDocument();
+    expect(await screen.findByText('Преподаватель')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
     expect(screen.getByText('Выбор антибиотика')).toBeInTheDocument();
