@@ -61,6 +61,14 @@ export function useDuplicateScenario() {
   });
 }
 
+export function usePublishScenario() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => scenariosApi.publish(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: scenarioKeys.all }),
+  });
+}
+
 export function useArchiveScenario() {
   const queryClient = useQueryClient();
   return useMutation({
