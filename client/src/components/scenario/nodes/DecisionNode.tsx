@@ -6,8 +6,8 @@ import { NodeView } from './nodeView';
 function DecisionNodeComponent({ data, selected }: NodeProps<ScenarioEditorNode>) {
   const options = Array.isArray(data.options) ? data.options.length : 0;
   return (
-    <NodeView icon="nodeDecision" selected={selected} subtitle="Decision node" title={data.title} tone="decision">
-      {options} options
+    <NodeView icon="nodeDecision" selected={selected} subtitle="Узел решения" title={data.title} tone="decision">
+      {options} вариантов
     </NodeView>
   );
 }

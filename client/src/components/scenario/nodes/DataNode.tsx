@@ -5,8 +5,8 @@ import { NodeView } from './nodeView';
 
 function DataNodeComponent({ data, selected }: NodeProps<ScenarioEditorNode>) {
   return (
-    <NodeView icon="nodeData" selected={selected} subtitle="Data node" title={data.title} tone="data">
-      HTML content
+    <NodeView icon="nodeData" selected={selected} subtitle="Узел данных" title={data.title} tone="data">
+      HTML содержимое
     </NodeView>
   );
 }

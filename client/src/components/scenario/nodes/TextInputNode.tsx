@@ -6,8 +6,8 @@ import { NodeView } from './nodeView';
 function TextInputNodeComponent({ data, selected }: NodeProps<ScenarioEditorNode>) {
   const keywords = Array.isArray(data.keywords) ? data.keywords.length : 0;
   return (
-    <NodeView icon="nodeText" selected={selected} subtitle="Text input node" title={data.title} tone="text">
-      {keywords} keywords
+    <NodeView icon="nodeText" selected={selected} subtitle="Узел текста" title={data.title} tone="text">
+      {keywords} ключевых слов
     </NodeView>
   );
 }

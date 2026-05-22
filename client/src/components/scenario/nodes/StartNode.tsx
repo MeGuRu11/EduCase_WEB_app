@@ -9,7 +9,7 @@ function StartNodeComponent({ data, selected }: NodeProps<ScenarioEditorNode>) {
       icon="nodeStart"
       selected={selected}
       source
-      subtitle="Start node"
+      subtitle="Стартовый узел"
       target={false}
       title={data.title}
       tone="start"

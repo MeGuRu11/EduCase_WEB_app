@@ -3,6 +3,12 @@ import type { NodeProps } from '@xyflow/react';
 import type { ScenarioEditorNode } from '@/stores/scenarioEditorStore';
 import { NodeView } from './nodeView';
 
+const resultLabels: Record<string, string> = {
+  correct: 'верно',
+  incorrect: 'неверно',
+  partial: 'частично',
+};
+
 function finalTone(result: unknown) {
   if (result === 'correct') return 'success';
   if (result === 'incorrect') return 'danger';
@@ -10,16 +16,17 @@ function finalTone(result: unknown) {
 }
 
 function FinalNodeComponent({ data, selected }: NodeProps<ScenarioEditorNode>) {
+  const resultType = String(data.result_type ?? 'partial');
   return (
     <NodeView
       icon="nodeFinal"
       selected={selected}
       source={false}
-      subtitle="Final node"
+      subtitle="Финальный узел"
       title={data.title}
       tone={finalTone(data.result_type)}
     >
-      {String(data.result_type ?? 'partial')}
+      {resultLabels[resultType] ?? resultType}
     </NodeView>
   );
 }
