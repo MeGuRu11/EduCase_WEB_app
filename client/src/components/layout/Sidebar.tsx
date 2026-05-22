@@ -13,15 +13,15 @@ interface SidebarItem {
 
 const itemsByRole: Record<UserRole, SidebarItem[]> = {
   student: [
-    { label: 'Dashboard', href: '/student', icon: 'dashboard' },
-    { label: 'Cases', href: '/student/cases', icon: 'cases' },
-    { label: 'Results', href: '/student/results', icon: 'attempts' },
+    { label: 'Дашборд', href: '/student', icon: 'dashboard' },
+    { label: 'Мои кейсы', href: '/student/cases', icon: 'cases' },
+    { label: 'Результаты', href: '/student/results', icon: 'attempts' },
   ],
   teacher: [
-    { label: 'Dashboard', href: '/teacher', icon: 'dashboard' },
-    { label: 'Scenarios', href: '/teacher/scenarios', icon: 'editor' },
-    { label: 'Groups', href: '/teacher/groups', icon: 'groups' },
-    { label: 'Analytics', href: '/teacher/analytics', icon: 'analytics' },
+    { label: 'Дашборд', href: '/teacher', icon: 'dashboard' },
+    { label: 'Мои сценарии', href: '/teacher/scenarios', icon: 'editor' },
+    { label: 'Группы', href: '/teacher/groups', icon: 'groups' },
+    { label: 'Аналитика', href: '/teacher/analytics', icon: 'analytics' },
   ],
   admin: [
     { label: 'Панель управления', href: '/admin', icon: 'admin' },

@@ -100,7 +100,7 @@ export default function MyResults() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-royal-ink">S-5 Results history</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-royal-ink">История результатов</p>
         <h1 className="text-3xl font-bold text-fg">Мои результаты</h1>
       </header>
 
@@ -119,7 +119,7 @@ export default function MyResults() {
           </SelectField>
           <SelectField label="Сценарий" value={scenarioId} onChange={setScenarioId}>
             <option value="all">Все сценарии</option>
-            {scenarios.map(([id, title]) => <option key={id} value={id}>{title} · фильтр</option>)}
+            {scenarios.map(([id, title]) => <option key={id} value={id}>{title}</option>)}
           </SelectField>
           <SelectField label="Сортировка" value={sort} onChange={(value) => setSort(value as SortMode)}>
             <option value="date_desc">Сначала новые</option>

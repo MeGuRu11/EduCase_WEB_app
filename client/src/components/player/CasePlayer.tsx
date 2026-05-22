@@ -185,14 +185,14 @@ export function CasePlayer({ scenarioId, previewScenario }: CasePlayerProps) {
   };
 
   if (!isPreview && start.isPending) {
-    return <Skeleton rows={4} label="Loading case" />;
+    return <Skeleton rows={4} label="Загрузка..." />;
   }
   if ((!isPreview && start.isError) || !currentNode) {
     return (
       <EmptyState
         icon="warn"
-        title="Case unavailable"
-        description="Could not start this case. Try again later."
+        title="Кейс недоступен"
+        description="Не удалось запустить кейс. Попробуйте позже."
       />
     );
   }
@@ -203,8 +203,8 @@ export function CasePlayer({ scenarioId, previewScenario }: CasePlayerProps) {
     <div className="flex h-full flex-col gap-4">
       <header className="flex items-center justify-between rounded-xl border border-border bg-bg px-4 py-3">
         <div>
-          <p className="text-sm text-fg-muted">{isPreview ? 'Preview in progress' : 'Case in progress'}</p>
-          <p className="text-sm text-fg">Step {pathSoFar.length}</p>
+          <p className="text-sm text-fg-muted">{isPreview ? 'Предпросмотр' : 'Кейс в процессе'}</p>
+          <p className="text-sm text-fg">Шаг {pathSoFar.length}</p>
         </div>
         {!isPreview && attemptId != null ? (
           <ServerTimer
@@ -252,14 +252,14 @@ export function CasePlayer({ scenarioId, previewScenario }: CasePlayerProps) {
           />
         ) : currentNode.type === 'final' ? (
           <div className="space-y-3">
-            <p className="text-sm text-fg-muted">Case completed.</p>
+            <p className="text-sm text-fg-muted">Кейс завершён.</p>
             {!isPreview ? (
               <button
                 type="button"
                 className="rounded bg-royal-ink px-4 py-2 text-white"
                 onClick={() => attemptId != null && goToResult(attemptId)}
               >
-                Go to result
+                Перейти к результату
               </button>
             ) : null}
           </div>

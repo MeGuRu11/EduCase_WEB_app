@@ -21,6 +21,12 @@ const statusVariant: Record<ScenarioStatus, 'accent' | 'info' | 'neutral'> = {
   published: 'info',
 };
 
+const statusLabels: Record<ScenarioStatus, string> = {
+  archived: 'Архив',
+  draft: 'Черновик',
+  published: 'Опубликован',
+};
+
 export default function MyScenarios() {
   const [status, setStatus] = useState<Filter>('all');
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -30,10 +36,10 @@ export default function MyScenarios() {
   const archiveScenario = useArchiveScenario();
   const deleteScenario = useDeleteScenario();
 
-  const complete = () => setMessage('Action completed');
+  const complete = () => setMessage('Выполнено');
   const columns: TableColumn<ScenarioListOut>[] = [
     {
-      header: 'Title',
+      header: 'Название',
       key: 'title',
       render: (row) => (
         <div>
@@ -45,24 +51,24 @@ export default function MyScenarios() {
       ),
     },
     {
-      header: 'Status',
+      header: 'Статус',
       key: 'status',
-      render: (row) => <Badge variant={statusVariant[row.status]}>{row.status}</Badge>,
+      render: (row) => <Badge variant={statusVariant[row.status]}>{statusLabels[row.status]}</Badge>,
     },
-    { header: 'Nodes', key: 'node_count' },
+    { header: 'Узлы', key: 'node_count' },
     {
-      header: 'Actions',
+      header: 'Действия',
       key: 'actions',
       render: (row) => (
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="secondary" onClick={() => duplicateScenario.mutate(row.id, { onSuccess: complete })}>
-            Duplicate
+            Дублировать
           </Button>
           <Button size="sm" variant="ghost" onClick={() => archiveScenario.mutate(row.id, { onSuccess: complete })}>
-            Archive
+            В архив
           </Button>
           <Button size="sm" variant="danger" onClick={() => setDeleteId(row.id)}>
-            Delete
+            Удалить
           </Button>
         </div>
       ),
@@ -81,15 +87,15 @@ export default function MyScenarios() {
     <div className="space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-fg-muted">Teacher workspace</p>
-          <h1 className="text-3xl font-bold text-fg">My scenarios</h1>
+          <p className="text-sm text-fg-muted">Преподаватель</p>
+          <h1 className="text-3xl font-bold text-fg">Мои сценарии</h1>
         </div>
-        <Button variant="primary">Create scenario</Button>
+        <Button variant="primary">Создать сценарий</Button>
       </header>
 
       <div className="rounded-xl border border-border bg-bg p-4">
         <label htmlFor="status-filter" className="mb-1 block text-sm font-medium text-fg">
-          Status filter
+          Фильтр по статусу
         </label>
         <select
           id="status-filter"
@@ -97,10 +103,10 @@ export default function MyScenarios() {
           onChange={(event) => setStatus(event.target.value as Filter)}
           className="h-10 rounded border border-border bg-bg px-3 text-sm text-fg focus:border-royal focus:outline-none focus:ring-2 focus:ring-royal/40"
         >
-          <option value="all">All</option>
-          <option value="draft">Draft</option>
-          <option value="published">Published</option>
-          <option value="archived">Archived</option>
+          <option value="all">Все</option>
+          <option value="draft">Черновики</option>
+          <option value="published">Опубликованные</option>
+          <option value="archived">Архив</option>
         </select>
       </div>
 
@@ -110,24 +116,24 @@ export default function MyScenarios() {
         <Table
           columns={columns}
           data={scenarios.data ?? []}
-          emptyMessage="No scenarios match this filter."
-          error={scenarios.error ? 'Failed to load scenarios.' : null}
+          emptyMessage="Сценарии не найдены."
+          error={scenarios.error ? 'Не удалось загрузить сценарии.' : null}
           getRowKey={(row) => row.id}
           isLoading={scenarios.isLoading}
         />
       ) : (
         <EmptyState
           icon="editor"
-          title="No scenarios yet"
-          description="Create your first clinical case and assign it to a group."
+          title="Сценарии не найдены"
+          description="Создайте первый клинический кейс и назначьте его группе."
         />
       )}
 
       <ConfirmDialog
         open={deleteId !== null}
-        title="Delete scenario"
-        description="Draft scenarios can be deleted permanently. This action cannot be undone."
-        confirmLabel="Confirm delete"
+        title="Удалить сценарий"
+        description="Черновые сценарии удаляются безвозвратно. Это действие нельзя отменить."
+        confirmLabel="Да, удалить"
         onCancel={() => setDeleteId(null)}
         onConfirm={confirmDelete}
       />

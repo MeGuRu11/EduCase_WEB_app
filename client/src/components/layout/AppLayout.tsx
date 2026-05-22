@@ -31,7 +31,14 @@ export function AppLayout() {
         open={isPromptOpen}
         title="Вы всё ещё здесь?"
         onClose={confirmActive}
-        footer={<Button onClick={confirmActive}>Я здесь</Button>}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => { logout(); navigate('/login?reason=idle', { replace: true }); }}>
+              Выйти сейчас
+            </Button>
+            <Button onClick={confirmActive}>Я здесь</Button>
+          </>
+        }
       >
         <p className="text-sm text-fg-muted">
           Сессия будет завершена через {countdown} секунд, если активность не возобновится.

@@ -30,7 +30,7 @@ export function TopBar({ idleCountdown = null }: TopBarProps) {
         {idleCountdown !== null ? (
           <span className="inline-flex items-center gap-2 rounded-full bg-warning/10 px-3 py-1 text-sm text-warning-ink">
             <Icon name="clock" className="h-4 w-4" />
-            {idleCountdown}
+            Выход через {idleCountdown} сек.
           </span>
         ) : null}
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-royal/10 text-sm font-semibold text-royal-ink">
