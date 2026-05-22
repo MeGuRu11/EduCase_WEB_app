@@ -262,7 +262,7 @@ describe('scenario node palette and inspector', () => {
     const writes = new Map<string, string>();
     render(<NodePalette />);
 
-    fireEvent.dragStart(screen.getByRole('button', { name: /decision/i }), {
+    fireEvent.dragStart(screen.getByRole('button', { name: /решение/i }), {
       dataTransfer: {
         effectAllowed: '',
         setData: (key: string, value: string) => writes.set(key, value),
@@ -275,7 +275,7 @@ describe('scenario node palette and inspector', () => {
   it.each([
     ['start', 'Start node'],
     ['data', 'Content HTML'],
-    ['decision', 'Decision options'],
+    ['decision', 'Варианты ответа'],
     ['form', 'Form template'],
     ['text_input', 'Keywords'],
     ['final', 'Final result'],
@@ -307,10 +307,10 @@ describe('scenario node palette and inspector', () => {
     useScenarioEditorStore.getState().selectNode(node.id);
     render(<NodeInspector />);
 
-    await user.click(screen.getByRole('button', { name: 'Add option' }));
+    await user.click(screen.getByRole('button', { name: 'Добавить вариант' }));
     expect(screen.getByLabelText('Option 1')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Remove option 1' }));
+    await user.click(screen.getByRole('button', { name: 'Удалить вариант 1' }));
     expect(screen.queryByLabelText('Option 1')).not.toBeInTheDocument();
   });
 });
@@ -393,9 +393,9 @@ describe('teacher scenario pages', () => {
       { route: '/teacher/scenarios/7/edit' },
     );
 
-    expect(await screen.findByText('Node palette')).toBeInTheDocument();
+    expect(await screen.findByText('Палитра узлов')).toBeInTheDocument();
     expect((await screen.findAllByText('Start')).length).toBeGreaterThan(0);
-    expect(screen.getByText('Inspector')).toBeInTheDocument();
+    expect(screen.getByText('Инспектор')).toBeInTheDocument();
   });
 
   it('lists scenarios and filters by status', async () => {

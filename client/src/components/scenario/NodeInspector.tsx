@@ -88,14 +88,14 @@ function DecisionInspector({ node }: { node: ScenarioEditorNode }) {
   const setOptions = (nextOptions: JsonObject[]) => updateNodeData(node.id, { options: nextOptions });
 
   return (
-    <Section title="Decision options">
+    <Section title="Варианты ответа">
       <label className="flex items-center gap-2 text-sm text-fg">
         <input
           type="checkbox"
           checked={Boolean(node.data.allow_multiple)}
           onChange={(event) => updateNodeData(node.id, { allow_multiple: event.target.checked })}
         />
-        Allow multiple answers
+        Несколько ответов
       </label>
       <label className="flex items-center gap-2 text-sm text-fg">
         <input
@@ -103,7 +103,7 @@ function DecisionInspector({ node }: { node: ScenarioEditorNode }) {
           checked={Boolean(node.data.partial_credit)}
           onChange={(event) => updateNodeData(node.id, { partial_credit: event.target.checked })}
         />
-        Partial credit
+        Частичный балл
       </label>
       <div className="space-y-2">
         {options.map((option, index) => (
@@ -117,8 +117,12 @@ function DecisionInspector({ node }: { node: ScenarioEditorNode }) {
                 setOptions(next);
               }}
             />
-            <Button variant="ghost" onClick={() => setOptions(options.filter((_, itemIndex) => itemIndex !== index))}>
-              Remove option {index + 1}
+            <Button
+              variant="ghost"
+              aria-label={`Удалить вариант ${index + 1}`}
+              onClick={() => setOptions(options.filter((_, itemIndex) => itemIndex !== index))}
+            >
+              Удалить
             </Button>
           </div>
         ))}
@@ -127,7 +131,7 @@ function DecisionInspector({ node }: { node: ScenarioEditorNode }) {
         variant="secondary"
         onClick={() => setOptions([...options, { id: `option-${options.length + 1}`, label: '' }])}
       >
-        Add option
+        Добавить вариант
       </Button>
     </Section>
   );
@@ -228,8 +232,8 @@ export function NodeInspector() {
   const node = useScenarioEditorStore((state) => state.nodes.find((item) => item.id === selectedNodeId));
 
   return (
-    <aside className="h-full border-l border-border bg-surface p-4" aria-label="Inspector">
-      <h2 className="mb-3 text-sm font-semibold text-fg">Inspector</h2>
+    <aside className="h-full border-l border-border bg-surface p-4" aria-label="Инспектор">
+      <h2 className="mb-3 text-sm font-semibold text-fg">Инспектор</h2>
       {node ? (
         <div className="space-y-4">
           <CommonFields node={node} />
