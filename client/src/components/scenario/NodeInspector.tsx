@@ -51,7 +51,7 @@ function CommonFields({ node }: { node: ScenarioEditorNode }) {
   const updateNode = useScenarioEditorStore((state) => state.updateNode);
   return (
     <Input
-      label="Title"
+      label="Заголовок"
       value={node.title}
       onChange={(event) => updateNode(node.id, { title: event.target.value })}
     />
@@ -63,16 +63,16 @@ function DataInspector({ node }: { node: ScenarioEditorNode }) {
   const html = String(node.data.html ?? '');
   const deferredHtml = useDeferredValue(html);
   return (
-    <Section title="Content HTML">
-      <Textarea label="Content HTML" value={html} onChange={(value) => updateNodeData(node.id, { html: value })} />
+    <Section title="Содержимое HTML">
+      <Textarea label="Содержимое HTML" value={html} onChange={(value) => updateNodeData(node.id, { html: value })} />
       <Input
-        label="Attachments"
+        label="Вложения"
         value={asStringArray(node.data.attachments).join(', ')}
         onChange={(event) => updateNodeData(node.id, { attachments: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) })}
-        hint="Comma-separated file references"
+        hint="Файлы через запятую"
       />
       <div>
-        <p className="mb-1 text-sm font-medium text-fg">Preview</p>
+        <p className="mb-1 text-sm font-medium text-fg">Предпросмотр</p>
         <div
           className="rounded border border-border bg-surface p-3 text-sm text-fg"
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(deferredHtml) }}
@@ -109,7 +109,7 @@ function DecisionInspector({ node }: { node: ScenarioEditorNode }) {
         {options.map((option, index) => (
           <div key={String(option.id ?? index)} className="flex items-end gap-2">
             <Input
-              label={`Option ${index + 1}`}
+              label={`Вариант ${index + 1}`}
               value={String(option.label ?? '')}
               onChange={(event) => {
                 const next = [...options];
@@ -141,19 +141,19 @@ function FormInspector({ node }: { node: ScenarioEditorNode }) {
   const updateNodeData = useScenarioEditorStore((state) => state.updateNodeData);
   const fields = asObjectArray(node.data.fields);
   return (
-    <Section title="Form template">
+    <Section title="Шаблон формы">
       <Input
-        label="Form template"
+        label="Шаблон формы"
         value={String(node.data.form_template_id ?? '')}
         onChange={(event) => updateNodeData(node.id, { form_template_id: event.target.value })}
       />
       <div className="space-y-2">
-        <p className="text-sm font-medium text-fg">Field scoring</p>
+        <p className="text-sm font-medium text-fg">Оценка полей</p>
         {fields.length ? (
           fields.map((field, index) => (
             <Input
               key={String(field.id ?? index)}
-              label={`${String(field.label ?? field.id ?? `Field ${index + 1}`)} score`}
+              label={`${String(field.label ?? field.id ?? `Поле ${index + 1}`)} балл`}
               type="number"
               value={String(field.score_value ?? field.score ?? 0)}
               onChange={(event) => {
@@ -164,7 +164,7 @@ function FormInspector({ node }: { node: ScenarioEditorNode }) {
             />
           ))
         ) : (
-          <p className="text-sm text-fg-muted">No fields configured yet.</p>
+          <p className="text-sm text-fg-muted">Поля не настроены.</p>
         )}
       </div>
     </Section>
@@ -174,19 +174,19 @@ function FormInspector({ node }: { node: ScenarioEditorNode }) {
 function TextInputInspector({ node }: { node: ScenarioEditorNode }) {
   const updateNodeData = useScenarioEditorStore((state) => state.updateNodeData);
   return (
-    <Section title="Keywords">
+    <Section title="Ключевые слова">
       <Input
-        label="Keywords"
+        label="Ключевые слова"
         value={asStringArray(node.data.keywords).join(', ')}
         onChange={(event) => updateNodeData(node.id, { keywords: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) })}
       />
       <Textarea
-        label="Synonyms"
+        label="Синонимы"
         value={JSON.stringify(node.data.synonyms ?? {}, null, 2)}
         onChange={(value) => updateNodeData(node.id, { synonyms_text: value })}
       />
       <Input
-        label="Minimum length"
+        label="Мин. длина"
         type="number"
         value={String(node.data.min_length ?? 1)}
         onChange={(event) => updateNodeData(node.id, { min_length: Number(event.target.value) })}
@@ -198,10 +198,10 @@ function TextInputInspector({ node }: { node: ScenarioEditorNode }) {
 function FinalInspector({ node }: { node: ScenarioEditorNode }) {
   const updateNodeData = useScenarioEditorStore((state) => state.updateNodeData);
   return (
-    <Section title="Final result">
+    <Section title="Итоговый результат">
       <div className="space-y-1.5">
         <label htmlFor="result-type" className="block text-sm font-medium text-fg">
-          Result type
+          Тип результата
         </label>
         <select
           id="result-type"
@@ -209,9 +209,9 @@ function FinalInspector({ node }: { node: ScenarioEditorNode }) {
           onChange={(event) => updateNodeData(node.id, { result_type: event.target.value })}
           className="h-10 w-full rounded border border-border bg-bg px-3 text-sm text-fg focus:border-royal focus:outline-none focus:ring-2 focus:ring-royal/40"
         >
-          <option value="correct">Correct</option>
-          <option value="partial">Partial</option>
-          <option value="incorrect">Incorrect</option>
+          <option value="correct">Верно</option>
+          <option value="partial">Частично</option>
+          <option value="incorrect">Неверно</option>
         </select>
       </div>
     </Section>
@@ -224,7 +224,7 @@ function ModeInspector({ node }: { node: ScenarioEditorNode }) {
   if (node.type === 'form') return <FormInspector node={node} />;
   if (node.type === 'text_input') return <TextInputInspector node={node} />;
   if (node.type === 'final') return <FinalInspector node={node} />;
-  return <Section title="Start node"><p className="text-sm text-fg-muted">Entry point of the case.</p></Section>;
+  return <Section title="Начальный узел"><p className="text-sm text-fg-muted">Точка входа в кейс.</p></Section>;
 }
 
 export function NodeInspector() {
@@ -241,7 +241,7 @@ export function NodeInspector() {
         </div>
       ) : (
         <p className="rounded-lg border border-border bg-bg p-4 text-sm text-fg-muted">
-          Select a node to edit its configuration.
+          Выберите узел для редактирования.
         </p>
       )}
     </aside>

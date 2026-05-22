@@ -273,12 +273,12 @@ describe('scenario node palette and inspector', () => {
   });
 
   it.each([
-    ['start', 'Start node'],
-    ['data', 'Content HTML'],
+    ['start', 'Начальный узел'],
+    ['data', 'Содержимое HTML'],
     ['decision', 'Варианты ответа'],
-    ['form', 'Form template'],
-    ['text_input', 'Keywords'],
-    ['final', 'Final result'],
+    ['form', 'Шаблон формы'],
+    ['text_input', 'Ключевые слова'],
+    ['final', 'Итоговый результат'],
   ] as const)('renders %s inspector controls', (type, expectedLabel) => {
     const node = useScenarioEditorStore.getState().addNode(type, { x: 0, y: 0 });
     useScenarioEditorStore.getState().selectNode(node.id);
@@ -286,7 +286,7 @@ describe('scenario node palette and inspector', () => {
     render(<NodeInspector />);
 
     expect(screen.getAllByText(expectedLabel).length).toBeGreaterThan(0);
-    expect(screen.getByLabelText('Title')).toBeInTheDocument();
+    expect(screen.getByLabelText('Заголовок')).toBeInTheDocument();
   });
 
   it('updates selected node title from the inspector', async () => {
@@ -295,8 +295,8 @@ describe('scenario node palette and inspector', () => {
     useScenarioEditorStore.getState().selectNode(node.id);
     render(<NodeInspector />);
 
-    await user.clear(screen.getByLabelText('Title'));
-    await user.type(screen.getByLabelText('Title'), 'Updated patient data');
+    await user.clear(screen.getByLabelText('Заголовок'));
+    await user.type(screen.getByLabelText('Заголовок'), 'Updated patient data');
 
     expect(useScenarioEditorStore.getState().nodes[0].title).toBe('Updated patient data');
   });
@@ -308,10 +308,10 @@ describe('scenario node palette and inspector', () => {
     render(<NodeInspector />);
 
     await user.click(screen.getByRole('button', { name: 'Добавить вариант' }));
-    expect(screen.getByLabelText('Option 1')).toBeInTheDocument();
+    expect(screen.getByLabelText('Вариант 1')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Удалить вариант 1' }));
-    expect(screen.queryByLabelText('Option 1')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Вариант 1')).not.toBeInTheDocument();
   });
 });
 
