@@ -5,6 +5,7 @@ export const analyticsKeys = {
   all: ['analytics'] as const,
   studentDashboard: () => [...analyticsKeys.all, 'student', 'dashboard'] as const,
   teacherScenarios: (scenarioId?: number | null) => [...analyticsKeys.all, 'teacher', 'scenarios', scenarioId ?? 'all'] as const,
+  teacherActivity: (days: number) => [...analyticsKeys.all, 'teacher', 'activity', days] as const,
   heatmap: (scenarioId?: number | null, groupId?: number | null) =>
     [...analyticsKeys.all, 'teacher', 'heatmap', scenarioId ?? 'missing', groupId ?? 'all'] as const,
 };
@@ -20,6 +21,13 @@ export function useTeacherScenarioStats(scenarioId?: number | null) {
   return useQuery({
     queryKey: analyticsKeys.teacherScenarios(scenarioId),
     queryFn: () => analyticsApi.teacherScenarios({ scenarioId }),
+  });
+}
+
+export function useTeacherActivity(days = 7) {
+  return useQuery({
+    queryKey: analyticsKeys.teacherActivity(days),
+    queryFn: () => analyticsApi.teacherActivity(days),
   });
 }
 

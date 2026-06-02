@@ -1,13 +1,16 @@
 # EpiCase — Project Memory
 
 ## Last Updated
-- Date: 2026-05-19
-- Agent: Claude Sonnet 4.6 (claude.ai)
-- Stage: POST-RELEASE — UI fixes (локализация admin, фокус модалки, Tailwind v4 плагин, логотип, create_admin скрипт)
-        (183 backend tests green + 107 frontend tests green; ruff, tsc, vitest,
-         verify clean; OWASP §B.2.3 audit 13/13 pass; user guides + DEPLOY + security
-         report written; tag v1.0.0 local; package-release.sh + build-images.sh
-         must be run on dev machine with Docker for tar.gz artifact)
+- Date: 2026-06-02
+- Agent: Claude Code (web session)
+- Stage: POST-RELEASE — teacher UI/analytics hotfixes (v1.0.1)
+        (dashboard l10n «Попытки»/«Попыток (всего)»; real endpoint
+         GET /api/analytics/teacher/activity replacing the stub 7-day formula;
+         NodeInspector label de-duplication + field hints; Russian default node titles.
+         Backend 193/193 green incl. new test_teacher_activity_counts_attempts_per_day;
+         ruff clean; analytics files mypy-clean; tsc clean; affected frontend suites
+         green. 1 pre-existing, unrelated MyScenarios delete-dialog vitest failure on
+         main — left untouched. NOT in scope: neutral edge rendering «−0», ADR-16/17.)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**
@@ -99,6 +102,18 @@
       Docker build + smoke-test § 15 + EXPLAIN ANALYZE — deferred to dev machine
       with full stack (sandbox limitation); VMedA IT runs full smoke per
       `docs/DEPLOY.md` Verification section.
+- [x] **POST-RELEASE UI hotfixes** (v1.0.1, 2026-06-02, branch `claude/pensive-brahmagupta-To5vx`):
+      (1) Issue 3 — `NodeInspector` label de-duplication (section title ≠ field label)
+          + `hint` prop on local `Textarea` and per-field hints; Russian default node
+          titles in `scenarioEditorStore.defaultTitle` (`Данные`/`Решение`/`Финал`/
+          `Форма`/`Начало теста`/`Текстовый ввод`). `data.html` key unchanged.
+      (2) Issue 2 l10n — `TeacherDashboard` chart `Tooltip`/`Bar` → «Попытки»,
+          KPI «Попыток сегодня» → «Попыток (всего)».
+      (3) Issue 2 data — new `GET /api/analytics/teacher/activity` (`ActivityDayOut`/
+          `TeacherActivityOut`, `AnalyticsService.teacher_activity`, zero-filled 7-day
+          UTC series); `useTeacherActivity` wired into `TeacherDashboard`, replacing the
+          stub formula. +1 backend test. ~12 files, no new deps.
+      NOT done (separate tasks): neutral edge rendering instead of red «−0»; ADR-16/17.
 
 ## Test Status
 - Backend: 183 tests / 183 passed  (Stage 4 target: ≥230 ⚠️ short — covered breadth, deferred extra-cases)

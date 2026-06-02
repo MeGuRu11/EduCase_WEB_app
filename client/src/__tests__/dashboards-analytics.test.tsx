@@ -202,6 +202,15 @@ function useStage8Handlers() {
       ]),
     ),
     http.get('/api/analytics/teacher/scenarios', () => HttpResponse.json(teacherStats)),
+    http.get('/api/analytics/teacher/activity', () =>
+      HttpResponse.json({
+        days: Array.from({ length: 7 }, (_, i) => ({
+          date: `2026-05-${String(25 + i).padStart(2, '0')}`,
+          count: i,
+        })),
+        total: 21,
+      }),
+    ),
     http.get('/api/analytics/teacher/heatmap/7', () => HttpResponse.json(heatmap)),
     http.get('/api/groups/', () => HttpResponse.json(groups)),
     http.get('/api/analytics/export', ({ request }) => {

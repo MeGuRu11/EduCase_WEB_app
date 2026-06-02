@@ -14,6 +14,7 @@ from schemas.analytics import (
     AdminStatsOut,
     PathHeatmapOut,
     StudentDashboardOut,
+    TeacherActivityOut,
     TeacherScenarioStatsOut,
 )
 from services.analytics_service import AnalyticsService
@@ -46,6 +47,19 @@ def teacher_scenarios(
     return AnalyticsService.teacher_scenario_stats(
         db, teacher=current, scenario_id=scenario_id
     )
+
+
+@router.get(
+    "/teacher/activity",
+    response_model=TeacherActivityOut,
+    dependencies=[Depends(require_role(RoleName.TEACHER, RoleName.ADMIN))],
+)
+def teacher_activity(
+    days: int = Query(default=7, ge=1, le=31),
+    current: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> TeacherActivityOut:
+    return AnalyticsService.teacher_activity(db, teacher=current, days=days)
 
 
 @router.get(

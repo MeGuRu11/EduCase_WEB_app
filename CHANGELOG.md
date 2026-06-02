@@ -1,5 +1,50 @@
 # EpiCase — CHANGELOG
 
+## v1.0.1 — 2026-06-02 — Hotfix: teacher dashboard l10n + real 7-day activity endpoint
+
+> Post-release UI/analytics fixes found during manual testing. No scenario content
+> in the DB yet, so no data migration or backwards-compat shims. Scope: 3 issues,
+> ~12 files. Does **not** include ADR-16/17 work.
+
+### Added
+
+- **`GET /api/analytics/teacher/activity`** — real per-day attempt counts over the
+  last *N* calendar days (UTC; `days` query param 1–31, default 7). Counts attempts
+  on scenarios authored by the teacher; missing days are zero-filled so the chart
+  always has a full series (oldest → today). New schemas `ActivityDayOut` +
+  `TeacherActivityOut`; `AnalyticsService.teacher_activity` (same `func.date`
+  pattern as `admin_stats`). Client: `analyticsApi.teacherActivity` +
+  `useTeacherActivity` hook.
+
+### Changed
+
+- **TeacherDashboard «Активность за 7 дней»** now renders real data from the new
+  endpoint instead of the placeholder formula `Math.round(activeAttempts/7) + (index % 3)`
+  (zero fallback while loading).
+- **Chart localisation (Issue 2)** — `Tooltip`/`Bar` now show «Попытки» (was the raw
+  English `attempts`), with token-based tooltip styling.
+- **KPI label** «Попыток сегодня» → «Попыток (всего)» — the value is total
+  `completed + in_progress` across scenarios, not a per-day figure.
+- **NodeInspector de-duplication (Issue 3)** — section titles no longer repeat the
+  field label: data → «Содержимое узла данных» / «HTML-разметка»; form → «Бланк
+  документа» / «Идентификатор шаблона»; text_input → «Свободный ответ». Added a
+  `hint` prop to the local `Textarea` and explanatory hints under each field.
+- **Russian default node titles** in the scenario editor (`Данные`, `Решение`,
+  `Финал`, `Форма`, `Начало теста`, `Текстовый ввод`) — a freshly dropped node no
+  longer shows English «Data». The `data.html` key is unchanged.
+
+### Tests
+
+- `+test_analytics.py::test_teacher_activity_counts_attempts_per_day` — today's
+  bucket counts the walked attempt; the six older days stay at 0.
+- Updated inspector label expectations (`scenario-editor.test.tsx`) and added an
+  activity MSW handler (`dashboards-analytics.test.tsx`).
+- Backend **193/193** green, `ruff` clean, analytics files mypy-clean, `tsc` clean,
+  affected frontend suites green. (One pre-existing, unrelated `MyScenarios`
+  delete-dialog vitest failure persists on `main` and is left untouched.)
+
+---
+
 ## 1.0.0 — 2026-05-18 — Release v1.0.0 (initial deploy for VMedA)
 
 > First production release. All stages 0–10 complete.

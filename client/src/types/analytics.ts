@@ -53,6 +53,16 @@ export interface TeacherScenarioStatsOut {
   student_ranking: StudentRankingEntry[];
 }
 
+export interface ActivityDayOut {
+  date: string;
+  count: number;
+}
+
+export interface TeacherActivityOut {
+  days: ActivityDayOut[];
+  total: number;
+}
+
 export interface HeatmapNode {
   id: string;
   title: string;

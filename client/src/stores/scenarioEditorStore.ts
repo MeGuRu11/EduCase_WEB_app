@@ -57,12 +57,12 @@ let generatedEdgeId = 0;
 
 function defaultTitle(type: NodeType) {
   const titles: Record<NodeType, string> = {
-    data: 'Data',
-    decision: 'Decision',
-    final: 'Final',
-    form: 'Form',
-    start: 'Start',
-    text_input: 'Text input',
+    data: 'Данные',
+    decision: 'Решение',
+    final: 'Финал',
+    form: 'Форма',
+    start: 'Начало теста',
+    text_input: 'Текстовый ввод',
   };
   return titles[type];
 }
