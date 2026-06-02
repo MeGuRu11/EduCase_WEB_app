@@ -1,5 +1,5 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { useTeacherScenarioStats } from '@/hooks/useAnalytics';
+import { useTeacherActivity, useTeacherScenarioStats } from '@/hooks/useAnalytics';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -27,9 +27,11 @@ export default function TeacherDashboard() {
   const activeAttempts = stats.reduce((sum, item) => sum + item.completed + item.in_progress, 0);
   const avgScore = stats.length ? stats.reduce((sum, item) => sum + item.avg_score, 0) / stats.length : 0;
   const weakNodes = topWeakNodes(stats.flatMap((item) => item.weak_nodes));
-  const activity = Array.from({ length: 7 }).map((_, index) => ({
-    day: index === 6 ? 'Сегодня' : `Д-${6 - index}`,
-    attempts: Math.max(0, Math.round(activeAttempts / 7) + (index % 3)),
+  const activityQuery = useTeacherActivity(7);
+  const activityDays = activityQuery.data?.days ?? Array.from({ length: 7 }, () => ({ count: 0 }));
+  const activity = activityDays.map((item, index) => ({
+    day: index === activityDays.length - 1 ? 'Сегодня' : `Д-${activityDays.length - 1 - index}`,
+    attempts: item.count,
   }));
 
   if (statsQuery.isLoading) return <Skeleton rows={6} label="Загрузка..." />;
@@ -49,7 +51,7 @@ export default function TeacherDashboard() {
       <section className="grid gap-4 md:grid-cols-4" aria-label="KPI преподавателя">
         <KpiTile label="Сценариев" value={stats.length} />
         <KpiTile label="Студентов в группах" value={totalStudents} />
-        <KpiTile label="Попыток сегодня" value={activeAttempts} />
+        <KpiTile label="Попыток (всего)" value={activeAttempts} />
         <KpiTile label="Средний балл" value={formatPercent(avgScore)} />
       </section>
 
@@ -61,8 +63,12 @@ export default function TeacherDashboard() {
                 <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
                 <XAxis dataKey="day" stroke="var(--color-fg-muted)" />
                 <YAxis stroke="var(--color-fg-muted)" />
-                <Tooltip />
-                <Bar dataKey="attempts" fill="var(--color-purple)" radius={[6, 6, 0, 0]} />
+                <Tooltip
+                  formatter={(value) => [value, 'Попытки'] as [number, string]}
+                  contentStyle={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 8, color: 'var(--color-fg)' }}
+                  labelStyle={{ color: 'var(--color-fg)' }}
+                />
+                <Bar dataKey="attempts" name="Попытки" fill="var(--color-purple)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -12,7 +12,7 @@ Spec:
 from __future__ import annotations
 
 import io
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import case, func
 from sqlalchemy import text as sa_text
@@ -22,6 +22,7 @@ from models.attempt import Attempt, AttemptStep
 from models.scenario import Scenario
 from models.user import Role, RoleName, User
 from schemas.analytics import (
+    ActivityDayOut,
     AdminStatsOut,
     HeatmapEdge,
     HeatmapNode,
@@ -30,6 +31,7 @@ from schemas.analytics import (
     ScoreDistributionOut,
     StudentDashboardOut,
     StudentRankingEntry,
+    TeacherActivityOut,
     TeacherScenarioStatsOut,
 )
 from schemas.attempt import AttemptSummaryOut
@@ -260,6 +262,56 @@ class AnalyticsService:
                 )
             )
         return results
+
+    # ─── Teacher activity ───────────────────────────────────────────────
+
+    @classmethod
+    def teacher_activity(
+        cls, db: Session, *, teacher: User, days: int = 7,
+    ) -> TeacherActivityOut:
+        """Attempts per day over the last ``days`` calendar days (UTC).
+
+        Counts attempts on scenarios authored by ``teacher``. Missing days are
+        filled with 0 so the chart always has a full series (oldest → today).
+        """
+        days = max(1, min(days, 31))
+        scenario_ids = [
+            row.id
+            for row in db.query(Scenario.id)
+            .filter(Scenario.author_id == teacher.id)
+            .all()
+        ]
+        today = datetime.now(tz=UTC).date()
+        start = today - timedelta(days=days - 1)
+
+        counts: dict[date, int] = {}
+        if scenario_ids:
+            rows = (
+                db.query(
+                    func.date(Attempt.started_at).label("day"),
+                    func.count(Attempt.id).label("count"),
+                )
+                .filter(Attempt.scenario_id.in_(scenario_ids))
+                .filter(func.date(Attempt.started_at) >= start)
+                .group_by(func.date(Attempt.started_at))
+                .all()
+            )
+            for row in rows:
+                day = row.day
+                if not isinstance(day, date):
+                    day = date.fromisoformat(str(day))
+                counts[day] = int(row.count or 0)
+
+        series = [
+            ActivityDayOut(
+                date=(start + timedelta(days=offset)).isoformat(),
+                count=counts.get(start + timedelta(days=offset), 0),
+            )
+            for offset in range(days)
+        ]
+        return TeacherActivityOut(
+            days=series, total=sum(item.count for item in series)
+        )
 
     # ─── Path heatmap ──────────────────────────────────────────────────
 

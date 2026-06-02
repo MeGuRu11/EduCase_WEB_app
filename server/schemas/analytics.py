@@ -62,6 +62,16 @@ class TeacherScenarioStatsOut(BaseModel):
     student_ranking: list[StudentRankingEntry] = Field(default_factory=list)
 
 
+class ActivityDayOut(BaseModel):
+    date: str
+    count: int
+
+
+class TeacherActivityOut(BaseModel):
+    days: list[ActivityDayOut] = Field(default_factory=list)
+    total: int = 0
+
+
 class HeatmapNode(BaseModel):
     id: str
     title: str

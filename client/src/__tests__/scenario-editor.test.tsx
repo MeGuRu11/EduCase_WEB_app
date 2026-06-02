@@ -274,9 +274,9 @@ describe('scenario node palette and inspector', () => {
 
   it.each([
     ['start', 'Начальный узел'],
-    ['data', 'Содержимое HTML'],
+    ['data', 'Содержимое узла данных'],
     ['decision', 'Варианты ответа'],
-    ['form', 'Шаблон формы'],
+    ['form', 'Бланк документа'],
     ['text_input', 'Ключевые слова'],
     ['final', 'Итоговый результат'],
   ] as const)('renders %s inspector controls', (type, expectedLabel) => {

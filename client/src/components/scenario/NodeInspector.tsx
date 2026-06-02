@@ -23,10 +23,12 @@ function Section({ children, title }: { children: ReactNode; title: string }) {
 }
 
 function Textarea({
+  hint,
   label,
   onChange,
   value,
 }: {
+  hint?: string;
   label: string;
   onChange: (value: string) => void;
   value: string;
@@ -43,6 +45,7 @@ function Textarea({
         onChange={(event) => onChange(event.target.value)}
         className="min-h-28 w-full rounded border border-border bg-bg px-3 py-2 text-sm text-fg focus:border-royal focus:outline-none focus:ring-2 focus:ring-royal/40"
       />
+      {hint ? <p className="text-xs text-fg-muted">{hint}</p> : null}
     </div>
   );
 }
@@ -63,8 +66,13 @@ function DataInspector({ node }: { node: ScenarioEditorNode }) {
   const html = String(node.data.html ?? '');
   const deferredHtml = useDeferredValue(html);
   return (
-    <Section title="Содержимое HTML">
-      <Textarea label="Содержимое HTML" value={html} onChange={(value) => updateNodeData(node.id, { html: value })} />
+    <Section title="Содержимое узла данных">
+      <Textarea
+        label="HTML-разметка"
+        hint="Что увидит студент на этом шаге: описание ситуации, данные пациентов, результаты исследований."
+        value={html}
+        onChange={(value) => updateNodeData(node.id, { html: value })}
+      />
       <Input
         label="Вложения"
         value={asStringArray(node.data.attachments).join(', ')}
@@ -141,11 +149,12 @@ function FormInspector({ node }: { node: ScenarioEditorNode }) {
   const updateNodeData = useScenarioEditorStore((state) => state.updateNodeData);
   const fields = asObjectArray(node.data.fields);
   return (
-    <Section title="Шаблон формы">
+    <Section title="Бланк документа">
       <Input
-        label="Шаблон формы"
+        label="Идентификатор шаблона"
         value={String(node.data.form_template_id ?? '')}
         onChange={(event) => updateNodeData(node.id, { form_template_id: event.target.value })}
+        hint="Например: ф.23 (экстренное извещение), направление на лабораторное исследование."
       />
       <div className="space-y-2">
         <p className="text-sm font-medium text-fg">Оценка полей</p>
@@ -174,11 +183,12 @@ function FormInspector({ node }: { node: ScenarioEditorNode }) {
 function TextInputInspector({ node }: { node: ScenarioEditorNode }) {
   const updateNodeData = useScenarioEditorStore((state) => state.updateNodeData);
   return (
-    <Section title="Ключевые слова">
+    <Section title="Свободный ответ">
       <Input
         label="Ключевые слова"
         value={asStringArray(node.data.keywords).join(', ')}
         onChange={(event) => updateNodeData(node.id, { keywords: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) })}
+        hint="Через запятую. Ответ студента проверяется на наличие этих слов."
       />
       <Textarea
         label="Синонимы"

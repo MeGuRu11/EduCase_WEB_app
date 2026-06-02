@@ -230,6 +230,32 @@ def test_teacher_scenario_stats_student_breakdown(
     assert any(entry["user_id"] == student_user.id for entry in ranking)
 
 
+# ─── Teacher activity ──────────────────────────────────────────────────
+
+
+def test_teacher_activity_counts_attempts_per_day(
+    client: TestClient,
+    teacher_token,
+    student_token,
+    student_user,
+    db_session: Session,
+):
+    """7-day activity series: today's bucket counts the walked attempt."""
+    sid, _ = _publish_and_assign(client, teacher_token, student_user, db_session)
+    _walk_attempt(client, student_token, sid)
+
+    r = client.get(
+        "/api/analytics/teacher/activity",
+        headers=auth_header(teacher_token),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body["days"]) == 7
+    assert body["days"][-1]["count"] >= 1
+    assert body["total"] >= 1
+    assert all(day["count"] == 0 for day in body["days"][:-1])
+
+
 # ─── Path heatmap ──────────────────────────────────────────────────────
 
 

@@ -1,5 +1,10 @@
 import api from './client';
-import type { PathHeatmapOut, StudentDashboardOut, TeacherScenarioStatsOut } from '@/types/analytics';
+import type {
+  PathHeatmapOut,
+  StudentDashboardOut,
+  TeacherActivityOut,
+  TeacherScenarioStatsOut,
+} from '@/types/analytics';
 
 export type AnalyticsExportFormat = 'xlsx' | 'pdf';
 
@@ -21,6 +26,13 @@ export const analyticsApi = {
   async teacherScenarios(params: TeacherScenarioStatsParams = {}) {
     const response = await api.get<TeacherScenarioStatsOut[]>('/analytics/teacher/scenarios', {
       params: params.scenarioId ? { scenario_id: params.scenarioId } : undefined,
+    });
+    return response.data;
+  },
+
+  async teacherActivity(days = 7) {
+    const response = await api.get<TeacherActivityOut>('/analytics/teacher/activity', {
+      params: { days },
     });
     return response.data;
   },
