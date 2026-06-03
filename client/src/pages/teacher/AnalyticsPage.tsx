@@ -171,7 +171,11 @@ function DistributionTab({ stat }: { stat: TeacherScenarioStatsOut }) {
             <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
             <XAxis dataKey="label" stroke="var(--color-fg-muted)" />
             <YAxis stroke="var(--color-fg-muted)" />
-            <Tooltip />
+            <Tooltip
+              formatter={(value) => [value, 'Студентов'] as [number, string]}
+              contentStyle={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 8, color: 'var(--color-fg)' }}
+              labelStyle={{ color: 'var(--color-fg)' }}
+            />
             <Bar dataKey="count" fill="var(--color-royal)" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
