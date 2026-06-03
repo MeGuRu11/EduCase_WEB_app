@@ -1,5 +1,65 @@
 # EpiCase — CHANGELOG
 
+## v1.0.2 — 2026-06-03 — Edge Inspector + Analytics UX (pre-ADR-16/17)
+
+> Two independent front-end fix sets found during manual testing, shipped on one
+> branch **before** ADR-16 (схема очага) / ADR-17 (каноническая структура).
+> Front-end only — the edge backend model and the grader semantics are untouched.
+
+### Added
+
+- **Edge Inspector** (`client/src/components/scenario/EdgeInspector.tsx`) — the
+  scenario editor finally has a panel for edges. Select a connection on the canvas
+  (`onEdgeClick`) and edit its **тип связи** (Правильный / Неправильный / Нейтральный
+  путь), **баллы** (`score_delta`), **частичный балл** (`partial`, decision sources)
+  and **вариант ответа** (`option_id`, decision sources — options pulled from the
+  source decision node). `ScenarioEditorPage` swaps `NodeInspector` ↔ `EdgeInspector`
+  based on the active selection.
+- **Analytics «Кейс» selector** — `AnalyticsPage` now renders a controlled scenario
+  `<select>` next to the group selector, so a teacher can switch between their cases
+  on both `/teacher/analytics` and `/teacher/scenarios/:id/analytics`. Stats are now
+  fetched for all teacher scenarios so the selector is populated; the active case is
+  `pickedScenarioId ?? routeScenarioId ?? stats[0]`.
+
+### Changed
+
+- **Neutral edges by default** — a freshly drawn transition no longer defaults to the
+  red dashed «−0» (was: `is_correct=false, score_delta=0`). New edges are *neutral*
+  (no answer flag), rendered as a solid grey line. `ChoiceEdge` gained a `neutral`
+  state, `getEdgeState` distinguishes `true`/`false`/`undefined`, and the score badge
+  is hidden unless `score_delta !== 0` **or** the edge is an answer edge (never «−0»).
+- **Store (`scenarioEditorStore`)** — added `selectedEdgeId`, `selectEdge`,
+  `updateEdgeData`; `selectNode`/`selectEdge` are mutually exclusive; `deleteSelected`
+  removes the selected edge when no node is selected; `option_id` added to
+  `ScenarioEdgeData`. Edge `data` round-trips intact through save/load (spread mapping).
+- **Analytics minimap** — `toFlowNodes` now exposes a solid `heatColor` (the node
+  `style` uses `color-mix`, which the minimap canvas cannot resolve) and an explicit
+  node height; `<MiniMap>` is `pannable zoomable` with a token-based `nodeColor`/mask.
+- **Analytics node detail** — the heavy centred `<Modal>` is replaced by a compact
+  card pinned to the top-right of the graph container (title + node-type chip +
+  «Посещений» + «Средний балл» with a heat dot + close ×). `Modal` import removed.
+
+> Out of scope (deferred to ADR-16/17 / Stage 13–14): analytics graph layout (etapная
+> раскладка), Decision↔option conformance validation, and any edge backend-model /
+> grader change. Note: because the edge backend model has no neutral state, a neutral
+> edge persisted server-side currently reloads as `is_correct=true` — accepted until
+> the canonical structure lands.
+
+### Tests
+
+- `scenario-editor.test.tsx`: new edge-selection (canvas `onEdgeClick`/`onPaneClick`),
+  neutral/incorrect `ChoiceEdge` rendering, full `EdgeInspector` suite (link type,
+  score, decision-only option/partial fields, store writes, delete), and an A6
+  serialization round-trip. Updated the default-edge test to assert neutral metadata.
+- `dashboards-analytics.test.tsx`: node click now asserts the compact card (not a
+  `dialog`), plus a new scenario-selector test (lists cases, switches the active case).
+- **Front-end 131/132 vitest green, `tsc` clean.** Backend untouched (`ruff` clean;
+  pytest needs Postgres/testcontainers, not provisioned here). The one failing suite
+  is the **pre-existing, unrelated** `MyScenarios` delete-dialog test (fails on a clean
+  checkout too; left untouched).
+
+---
+
 ## v1.0.1 — 2026-06-02 — Hotfix: teacher dashboard l10n + real 7-day activity endpoint
 
 > Post-release UI/analytics fixes found during manual testing. No scenario content

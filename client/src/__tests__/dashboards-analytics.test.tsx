@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import AnalyticsPage from '@/pages/teacher/AnalyticsPage';
@@ -305,14 +305,49 @@ describe('Stage 8 dashboards and analytics', () => {
     expect(screen.getByText(/25 студентов/)).toBeInTheDocument();
   });
 
-  it('renders analytics heatmap and opens node detail modal', async () => {
+  it('renders analytics heatmap and opens a compact node detail card', async () => {
     useStage8Handlers();
     renderAnalytics();
 
     expect(await screen.findByRole('heading', { name: /Аналитика/ })).toBeInTheDocument();
     expect(screen.getByTestId('analytics-heatmap')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Выбор антибиотика' }));
-    expect(screen.getByRole('dialog')).toHaveTextContent('45%');
+
+    // Compact card, not a full-screen modal dialog.
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText('Посещений: 9')).toBeInTheDocument();
+    expect(screen.getByText(/Средний балл: 45%/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Закрыть' }));
+    expect(screen.queryByText('Посещений: 9')).not.toBeInTheDocument();
+  });
+
+  it('renders the scenario selector and switches the active case', async () => {
+    useStage8Handlers();
+    const secondStat: TeacherScenarioStatsOut = {
+      ...teacherStats[0],
+      scenario_id: 8,
+      scenario_title: 'Гепатит',
+    };
+    const secondHeatmap: PathHeatmapOut = {
+      ...heatmap,
+      scenario_id: 8,
+      nodes: [{ id: 'start-8', title: 'Старт гепатита', node_type: 'start', visit_count: 4, avg_score_pct: null }],
+      edges: [],
+    };
+    server.use(
+      http.get('/api/analytics/teacher/scenarios', () => HttpResponse.json([teacherStats[0], secondStat])),
+      http.get('/api/analytics/teacher/heatmap/8', () => HttpResponse.json(secondHeatmap)),
+    );
+
+    renderAnalytics('/teacher/analytics');
+
+    const selector = await screen.findByLabelText('Кейс');
+    expect(within(selector).getByRole('option', { name: 'Пневмония' })).toBeInTheDocument();
+    expect(within(selector).getByRole('option', { name: 'Гепатит' })).toBeInTheDocument();
+
+    await userEvent.selectOptions(selector, '8');
+    expect(await screen.findByRole('heading', { name: /Гепатит/ })).toBeInTheDocument();
   });
 
   it('renders analytics score distribution tab', async () => {

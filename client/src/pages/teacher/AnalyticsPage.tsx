@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Table, type TableColumn } from '@/components/ui/Table';
 import { formatDuration, formatPercent } from '@/utils/formatters';
@@ -57,12 +56,15 @@ function toFlowNodes(nodes: AnalyticsHeatmapNode[]): Node[] {
     return {
       id: node.id,
       position: { x: 90 + (index % 3) * 260, y: 80 + Math.floor(index / 3) * 150 },
-      data: { label: node.title, title: node.title },
+      // `heatColor` is a solid colour the MiniMap can render (the node `style`
+      // uses color-mix, which the MiniMap canvas cannot resolve).
+      data: { label: node.title, title: node.title, heatColor: color },
       style: {
         background: `color-mix(in srgb, ${color} 14%, var(--color-bg))`,
         border: `2px solid color-mix(in srgb, ${color} 50%, var(--color-border))`,
         borderRadius: '12px',
         color: 'var(--color-fg)',
+        height: 56,
         padding: '12px 16px',
         width: 180,
       },
@@ -111,32 +113,51 @@ function HeatmapTab({ heatmap, isLoading }: { heatmap: ReturnType<typeof usePath
   if (!heatmap || !heatmap.nodes.length) return <EmptyState icon="analytics" title="Данных тепловой карты пока нет" />;
 
   return (
-    <>
-      <div className="h-96 overflow-hidden rounded-lg border border-border bg-bg">
-        <ReactFlow
-          nodes={toFlowNodes(heatmap.nodes)}
-          edges={toFlowEdges(heatmap.edges)}
-          fitView
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable={false}
-          onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-        >
-          <Background />
-          <Controls />
-          <MiniMap />
-        </ReactFlow>
-      </div>
-      <Modal open={selectedNode != null} title={selectedNode?.title ?? 'Узел'} onClose={() => setSelectedNodeId(null)}>
-        {selectedNode ? (
-          <div className="space-y-2 text-sm text-fg">
-            <p>Тип: {selectedNode.node_type}</p>
-            <p>Посещений: {selectedNode.visit_count}</p>
-            <p>Средний балл: {formatPercent(selectedNode.avg_score_pct)}</p>
+    <div className="relative h-96 overflow-hidden rounded-lg border border-border bg-bg">
+      <ReactFlow
+        nodes={toFlowNodes(heatmap.nodes)}
+        edges={toFlowEdges(heatmap.edges)}
+        fitView
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable={false}
+        onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+      >
+        <Background />
+        <Controls />
+        <MiniMap
+          pannable
+          zoomable
+          nodeStrokeWidth={2}
+          nodeColor={(node) => (node.data?.heatColor as string) ?? 'var(--color-royal)'}
+          maskColor="color-mix(in srgb, var(--color-bg) 70%, transparent)"
+        />
+      </ReactFlow>
+      {selectedNode ? (
+        <div className="absolute right-3 top-3 w-60 rounded-lg border border-border bg-bg p-4 shadow-lg">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-sm font-semibold text-fg">{selectedNode.title}</h3>
+            <button
+              type="button"
+              aria-label="Закрыть"
+              className="focus-ring -mr-1 -mt-1 rounded p-1 text-fg-muted transition-colors hover:bg-lavender/30 hover:text-fg"
+              onClick={() => setSelectedNodeId(null)}
+            >
+              ×
+            </button>
           </div>
-        ) : null}
-      </Modal>
-    </>
+          <Badge variant="neutral" className="mt-2">{selectedNode.node_type}</Badge>
+          <p className="mt-3 text-sm text-fg">{`Посещений: ${selectedNode.visit_count}`}</p>
+          <p className="mt-1 flex items-center gap-2 text-sm text-fg">
+            <span
+              className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ background: heatmapColor(selectedNode.avg_score_pct) }}
+            />
+            {`Средний балл: ${formatPercent(selectedNode.avg_score_pct)}`}
+          </p>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -221,9 +242,17 @@ export default function AnalyticsPage() {
   const routeScenarioId = parseNumber(params.id);
   const groupId = parseNumber(searchParams.get('group_id') ?? undefined);
   const [tab, setTab] = useState<AnalyticsTab>('heatmap');
-  const statsQuery = useTeacherScenarioStats(routeScenarioId);
+  const [pickedScenarioId, setPickedScenarioId] = useState<number | null>(routeScenarioId ?? null);
+  // Fetch every teacher scenario (not the route-filtered slice) so the «Кейс»
+  // selector can switch between cases on both /teacher/analytics and the
+  // /teacher/scenarios/:id/analytics route variant.
+  const statsQuery = useTeacherScenarioStats();
   const stats = statsQuery.data ?? [];
-  const stat = (routeScenarioId ? stats.find((item) => item.scenario_id === routeScenarioId) : stats[0]) ?? null;
+  const scenarioOptions = Array.from(
+    new Map(stats.map((item) => [item.scenario_id, item.scenario_title])).entries(),
+  );
+  const activeScenarioId = pickedScenarioId ?? routeScenarioId ?? stats[0]?.scenario_id ?? null;
+  const stat = stats.find((item) => item.scenario_id === activeScenarioId) ?? null;
   const groupOptions = Array.from(
     new Map(
       stats
@@ -231,7 +260,7 @@ export default function AnalyticsPage() {
         .map((item) => [item.group_id as number, item.group_name ?? `Группа ${item.group_id}`]),
     ).entries(),
   );
-  const scenarioId = routeScenarioId ?? stat?.scenario_id ?? null;
+  const scenarioId = activeScenarioId;
   const heatmap = usePathHeatmap(scenarioId, groupId);
   const exportMutation = useExportAnalytics();
 
@@ -259,6 +288,18 @@ export default function AnalyticsPage() {
           <p className="text-sm text-fg-muted">{stat.group_name ? `Группа: ${stat.group_name}` : 'Все доступные группы'}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {scenarioOptions.length ? (
+            <label className="space-y-1 text-sm font-medium text-fg">
+              <span>Кейс</span>
+              <select
+                className="h-10 rounded border border-border bg-bg px-3 text-sm text-fg focus:border-royal focus:outline-none focus:ring-2 focus:ring-royal/40"
+                value={activeScenarioId ?? ''}
+                onChange={(event) => setPickedScenarioId(Number(event.target.value))}
+              >
+                {scenarioOptions.map(([id, title]) => <option key={id} value={id}>{title}</option>)}
+              </select>
+            </label>
+          ) : null}
           {groupOptions.length ? (
             <label className="space-y-1 text-sm font-medium text-fg">
               <span>Группа</span>
