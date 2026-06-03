@@ -20,6 +20,7 @@ export interface ScenarioEdgeData extends JsonObject {
   [ANSWER_EDGE_KEY]?: boolean;
   score_delta?: number;
   partial?: boolean;
+  option_id?: string;
 }
 
 export type ScenarioEditorNode = Node<ScenarioNodeData, NodeType> & {
@@ -34,6 +35,7 @@ interface ScenarioEditorState {
   nodes: ScenarioEditorNode[];
   edges: ScenarioEditorEdge[];
   selectedNodeId: string | null;
+  selectedEdgeId: string | null;
   isDirty: boolean;
   lastSaveAt: string | null;
   revision: number;
@@ -42,8 +44,10 @@ interface ScenarioEditorState {
   updateNodeData: (id: string, patch: JsonObject) => void;
   deleteNode: (id: string) => void;
   addEdge: (connection: Connection | { source: string; target: string }, data?: ScenarioEdgeData) => ScenarioEditorEdge | null;
+  updateEdgeData: (id: string, patch: JsonObject) => void;
   deleteEdge: (id: string) => void;
   selectNode: (id: string | null) => void;
+  selectEdge: (id: string | null) => void;
   deleteSelected: () => void;
   applyNodeChanges: (changes: NodeChange<ScenarioEditorNode>[]) => void;
   applyEdgeChanges: (changes: EdgeChange<ScenarioEditorEdge>[]) => void;
@@ -143,6 +147,7 @@ export const useScenarioEditorStore = create<ScenarioEditorState>()(
     lastSaveAt: null,
     nodes: [],
     revision: 0,
+    selectedEdgeId: null,
     selectedNodeId: null,
 
     addNode: (type, position) => {
@@ -158,6 +163,7 @@ export const useScenarioEditorStore = create<ScenarioEditorState>()(
       set((state) => {
         state.nodes.push(node);
         state.selectedNodeId = id;
+        state.selectedEdgeId = null;
         state.isDirty = true;
         state.revision += 1;
       });
@@ -194,6 +200,9 @@ export const useScenarioEditorStore = create<ScenarioEditorState>()(
         state.nodes = state.nodes.filter((node) => node.id !== id);
         state.edges = state.edges.filter((edge) => edge.source !== id && edge.target !== id);
         if (state.selectedNodeId === id) state.selectedNodeId = null;
+        if (state.selectedEdgeId && !state.edges.some((edge) => edge.id === state.selectedEdgeId)) {
+          state.selectedEdgeId = null;
+        }
         state.isDirty = true;
         state.revision += 1;
       });
@@ -207,8 +216,8 @@ export const useScenarioEditorStore = create<ScenarioEditorState>()(
         target: connection.target,
         type: 'choice',
         label: null,
+        // New transitions are neutral by default: no answer flag (→ grey, not red «−0»).
         data: {
-          [ANSWER_EDGE_KEY]: false,
           score_delta: 0,
           partial: false,
           ...data,
@@ -222,6 +231,16 @@ export const useScenarioEditorStore = create<ScenarioEditorState>()(
       return edge;
     },
 
+    updateEdgeData: (id, patch) => {
+      set((state) => {
+        const edge = state.edges.find((item) => item.id === id);
+        if (!edge) return;
+        edge.data = { ...edge.data, ...patch };
+        state.isDirty = true;
+        state.revision += 1;
+      });
+    },
+
     deleteEdge: (id) => {
       set((state) => {
         state.edges = state.edges.filter((edge) => edge.id !== id);
@@ -233,12 +252,29 @@ export const useScenarioEditorStore = create<ScenarioEditorState>()(
     selectNode: (id) => {
       set((state) => {
         state.selectedNodeId = id;
+        state.selectedEdgeId = null;
+      });
+    },
+
+    selectEdge: (id) => {
+      set((state) => {
+        state.selectedEdgeId = id;
+        state.selectedNodeId = null;
       });
     },
 
     deleteSelected: () => {
-      const selected = get().selectedNodeId;
-      if (selected) get().deleteNode(selected);
+      const { selectedEdgeId, selectedNodeId } = get();
+      if (selectedNodeId) {
+        get().deleteNode(selectedNodeId);
+        return;
+      }
+      if (selectedEdgeId) {
+        get().deleteEdge(selectedEdgeId);
+        set((state) => {
+          state.selectedEdgeId = null;
+        });
+      }
     },
 
     applyNodeChanges: (changes) => {
@@ -276,6 +312,7 @@ export const useScenarioEditorStore = create<ScenarioEditorState>()(
         state.nodes = scenario.nodes.map(toEditorNode);
         state.edges = scenario.edges.map(toEditorEdge);
         state.selectedNodeId = null;
+        state.selectedEdgeId = null;
         state.isDirty = false;
         state.lastSaveAt = null;
         state.revision = 0;

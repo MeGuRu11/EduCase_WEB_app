@@ -1,4 +1,4 @@
-import { useCallback, type DragEvent, type KeyboardEvent } from 'react';
+import { useCallback, useMemo, type DragEvent, type KeyboardEvent } from 'react';
 import {
   Background,
   Controls,
@@ -47,13 +47,20 @@ export interface ScenarioCanvasProps {
 function ScenarioCanvasInner({ scenarioId: _scenarioId }: ScenarioCanvasProps) {
   const nodes = useScenarioEditorStore((state) => state.nodes);
   const edges = useScenarioEditorStore((state) => state.edges);
+  const selectedEdgeId = useScenarioEditorStore((state) => state.selectedEdgeId);
   const addNode = useScenarioEditorStore((state) => state.addNode);
   const addEdge = useScenarioEditorStore((state) => state.addEdge);
   const applyNodeChanges = useScenarioEditorStore((state) => state.applyNodeChanges);
   const applyEdgeChanges = useScenarioEditorStore((state) => state.applyEdgeChanges);
   const deleteSelected = useScenarioEditorStore((state) => state.deleteSelected);
   const selectNode = useScenarioEditorStore((state) => state.selectNode);
+  const selectEdge = useScenarioEditorStore((state) => state.selectEdge);
   const { screenToFlowPosition } = useReactFlow<ScenarioEditorNode, ScenarioEditorEdge>();
+
+  const selectableEdges = useMemo(
+    () => edges.map((edge) => (edge.id === selectedEdgeId ? { ...edge, selected: true } : edge)),
+    [edges, selectedEdgeId],
+  );
 
   const onConnect = useCallback((connection: Connection) => addEdge(connection), [addEdge]);
   const onNodesChange = useCallback(
@@ -100,15 +107,17 @@ function ScenarioCanvasInner({ scenarioId: _scenarioId }: ScenarioCanvasProps) {
     <div className="h-full min-h-[640px] rounded-xl border border-border bg-bg" onKeyDown={onKeyDown}>
       <ReactFlow<ScenarioEditorNode, ScenarioEditorEdge>
         nodes={nodes}
-        edges={edges}
+        edges={selectableEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onConnect={onConnect}
         onDragOver={onDragOver}
         onDrop={onDrop}
+        onEdgeClick={(_, edge) => selectEdge(edge.id)}
         onEdgesChange={onEdgesChange}
         onNodeClick={(_, node) => selectNode(node.id)}
         onNodesChange={onNodesChange}
+        onPaneClick={() => selectNode(null)}
         fitView
       >
         <Background />

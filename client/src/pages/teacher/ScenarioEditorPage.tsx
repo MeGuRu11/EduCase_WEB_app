@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { EdgeInspector } from '@/components/scenario/EdgeInspector';
 import { NodeInspector } from '@/components/scenario/NodeInspector';
 import { NodePalette } from '@/components/scenario/NodePalette';
 import { ScenarioCanvas } from '@/components/scenario/ScenarioCanvas';
@@ -28,6 +29,7 @@ export default function ScenarioEditorPage() {
   const loadGraph = useScenarioEditorStore((state) => state.loadGraph);
   const toGraphIn = useScenarioEditorStore((state) => state.toGraphIn);
   const markSaved = useScenarioEditorStore((state) => state.markSaved);
+  const selectedEdgeId = useScenarioEditorStore((state) => state.selectedEdgeId);
   const { error: autoSaveError, isSaving, lastSaveAt } = useAutoSave({
     scenarioId: id,
     saveGraph: (graph) => saveMutation.mutateAsync(graph),
@@ -78,7 +80,7 @@ export default function ScenarioEditorPage() {
         <main className="min-w-0 p-4">
           <ScenarioCanvas scenarioId={id} />
         </main>
-        <NodeInspector />
+        {selectedEdgeId ? <EdgeInspector /> : <NodeInspector />}
       </div>
     </div>
   );

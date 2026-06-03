@@ -1,16 +1,27 @@
 # EpiCase — Project Memory
 
 ## Last Updated
-- Date: 2026-06-02
+- Date: 2026-06-03
 - Agent: Claude Code (web session)
-- Stage: POST-RELEASE — teacher UI/analytics hotfixes (v1.0.1)
-        (dashboard l10n «Попытки»/«Попыток (всего)»; real endpoint
-         GET /api/analytics/teacher/activity replacing the stub 7-day formula;
-         NodeInspector label de-duplication + field hints; Russian default node titles.
-         Backend 193/193 green incl. new test_teacher_activity_counts_attempts_per_day;
-         ruff clean; analytics files mypy-clean; tsc clean; affected frontend suites
-         green. 1 pre-existing, unrelated MyScenarios delete-dialog vitest failure on
-         main — left untouched. NOT in scope: neutral edge rendering «−0», ADR-16/17.)
+- Stage: POST-RELEASE — Edge Inspector + Analytics UX (v1.0.2, pre-ADR-16/17)
+        (Front-end only; edge backend-model + grader untouched.
+         A) Edge Inspector: new EdgeInspector.tsx (тип связи / баллы / частичный балл /
+            вариант ответа); store gains selectedEdgeId + selectEdge + updateEdgeData
+            (node/edge selection mutually exclusive) + option_id on ScenarioEdgeData;
+            new transitions are NEUTRAL by default (no answer flag) → solid grey line,
+            no more red «−0»; ChoiceEdge gains neutral state + hides the −0 badge;
+            ScenarioCanvas wires onEdgeClick/onPaneClick + selected highlight;
+            ScenarioEditorPage swaps NodeInspector ↔ EdgeInspector.
+         B) Analytics: «Кейс» scenario selector (fetches all teacher scenarios so it
+            can switch on both routes); minimap now shows nodes (solid heatColor +
+            node height, pannable/zoomable + token nodeColor/mask); node popup Modal
+            → compact top-right card (title + type chip + Посещений + Средний балл).
+         Front-end 131/132 vitest green (+ new edge-inspector & analytics tests),
+         tsc clean. Backend unchanged (ruff clean; pytest needs Postgres/testcontainers,
+         not provisioned in this session). 1 pre-existing, unrelated MyScenarios
+         delete-dialog vitest failure — verified on clean checkout, left untouched.
+         NOT in scope (→ ADR-16/17, Stage 13–14): analytics graph layout, Decision↔option
+         conformance, edge backend-model neutral persistence.)
 
 ## Workflow Rule
 **Test → Green → Code → Green → Stage complete → Commit**

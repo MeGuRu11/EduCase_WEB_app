@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Position } from '@xyflow/react';
 import { ScenarioCanvas } from '@/components/scenario/ScenarioCanvas';
+import { EdgeInspector } from '@/components/scenario/EdgeInspector';
 import { NodeInspector } from '@/components/scenario/NodeInspector';
 import { NodePalette } from '@/components/scenario/NodePalette';
 import { ChoiceEdge } from '@/components/scenario/edges/ChoiceEdge';
@@ -30,19 +31,23 @@ vi.mock('@xyflow/react', () => {
     onConnect,
     onDragOver,
     onDrop,
+    onEdgeClick,
     onEdgesChange,
     onNodeClick,
     onNodesChange,
+    onPaneClick,
   }: {
     children?: ReactNode;
-    edges?: Array<{ id: string; label?: string | null }>;
+    edges?: Array<{ id: string; label?: string | null; selected?: boolean }>;
     nodes?: Array<{ id: string; type?: string; data?: { title?: string }; title?: string }>;
     onConnect?: (connection: { source: string; target: string }) => void;
     onDragOver?: (event: DragEvent<HTMLDivElement>) => void;
     onDrop?: (event: DragEvent<HTMLDivElement>) => void;
+    onEdgeClick?: (event: MouseEvent<HTMLButtonElement>, edge: { id: string }) => void;
     onEdgesChange?: (changes: Array<{ id: string; type: string }>) => void;
     onNodeClick?: (event: MouseEvent<HTMLButtonElement>, node: { id: string }) => void;
     onNodesChange?: (changes: Array<{ id: string; type: string; position?: { x: number; y: number } }>) => void;
+    onPaneClick?: () => void;
   }) => (
     <div
       data-testid="scenario-flow"
@@ -56,7 +61,14 @@ vi.mock('@xyflow/react', () => {
         </button>
       ))}
       {edges.map((edge) => (
-        <span key={edge.id}>{edge.label ?? edge.id}</span>
+        <button
+          key={edge.id}
+          type="button"
+          data-edge-selected={edge.selected ? 'true' : 'false'}
+          onClick={(event) => onEdgeClick?.(event, edge)}
+        >
+          {edge.label ?? edge.id}
+        </button>
       ))}
       <button type="button" onClick={() => onConnect?.({ source: 'start-1', target: 'data-1' })}>
         connect mocked nodes
@@ -69,6 +81,9 @@ vi.mock('@xyflow/react', () => {
       </button>
       <button type="button" onClick={() => onEdgesChange?.([{ id: 'edge-1', type: 'remove' }])}>
         remove mocked edge
+      </button>
+      <button type="button" onClick={() => onPaneClick?.()}>
+        click pane
       </button>
       {children}
     </div>
@@ -171,6 +186,7 @@ function resetEditorStore() {
     lastSaveAt: null,
     nodes: [],
     revision: 0,
+    selectedEdgeId: null,
     selectedNodeId: null,
   });
 }
@@ -205,7 +221,7 @@ describe('scenario editor store and canvas', () => {
     expect(useScenarioEditorStore.getState().isDirty).toBe(true);
   });
 
-  it('connects two nodes with default answer metadata', async () => {
+  it('connects two nodes with neutral default metadata', async () => {
     useScenarioEditorStore.getState().loadGraph(fullScenario());
     render(<ScenarioCanvas scenarioId={7} />);
 
@@ -215,8 +231,23 @@ describe('scenario editor store and canvas', () => {
     const edge = edges[edges.length - 1];
     expect(edge?.source).toBe('start-1');
     expect(edge?.target).toBe('data-1');
-    expect(edge?.data?.[ANSWER_EDGE_KEY]).toBe(false);
+    // Neutral by default: no answer flag (so the edge renders grey, not red «−0»).
+    expect(edge?.data?.[ANSWER_EDGE_KEY]).toBeUndefined();
     expect(edge?.data?.score_delta).toBe(0);
+  });
+
+  it('selects an edge from the canvas and clears it on pane click', async () => {
+    useScenarioEditorStore.getState().loadGraph(fullScenario());
+    useScenarioEditorStore.getState().selectNode('start-1');
+    render(<ScenarioCanvas scenarioId={7} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Begin' }));
+    expect(useScenarioEditorStore.getState().selectedEdgeId).toBe('edge-1');
+    expect(useScenarioEditorStore.getState().selectedNodeId).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: 'click pane' }));
+    expect(useScenarioEditorStore.getState().selectedEdgeId).toBeNull();
+    expect(useScenarioEditorStore.getState().selectedNodeId).toBeNull();
   });
 
   it('applies node and edge changes from React Flow', async () => {
@@ -315,6 +346,125 @@ describe('scenario node palette and inspector', () => {
   });
 });
 
+function decisionGraph() {
+  return {
+    nodes: [
+      { id: 'start-1', type: 'start' as const, position: { x: -200, y: 0 }, data: {}, title: 'Старт' },
+      {
+        id: 'decision-1',
+        type: 'decision' as const,
+        position: { x: 0, y: 0 },
+        data: { options: [{ id: 'o1', label: 'Вариант А' }, { id: 'o2', label: 'Вариант Б' }] },
+        title: 'Решение',
+      },
+      { id: 'final-1', type: 'final' as const, position: { x: 200, y: 0 }, data: {}, title: 'Финал' },
+    ],
+    edges: [
+      { id: 'edge-d', source: 'decision-1', target: 'final-1', label: null, data: { score_delta: 0, partial: false } },
+      { id: 'edge-s', source: 'start-1', target: 'decision-1', label: null, data: { score_delta: 0 } },
+    ],
+  };
+}
+
+describe('scenario edge inspector', () => {
+  beforeEach(() => {
+    resetEditorStore();
+  });
+
+  it('renders link type, score, and decision-only fields for a decision edge', () => {
+    useScenarioEditorStore.getState().loadGraph(decisionGraph());
+    useScenarioEditorStore.getState().selectEdge('edge-d');
+    render(<EdgeInspector />);
+
+    expect(screen.getByRole('radio', { name: /Правильный путь/ })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Неправильный путь/ })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Нейтральный переход/ })).toBeInTheDocument();
+    expect(screen.getByLabelText('Баллы')).toBeInTheDocument();
+    expect(screen.getByLabelText('Частичный балл')).toBeInTheDocument();
+    expect(screen.getByLabelText('Вариант ответа')).toBeInTheDocument();
+    // Neutral is the default for a freshly created transition.
+    expect(screen.getByRole('radio', { name: /Нейтральный переход/ })).toBeChecked();
+  });
+
+  it('hides decision-only fields when the source is not a decision node', () => {
+    useScenarioEditorStore.getState().loadGraph(decisionGraph());
+    useScenarioEditorStore.getState().selectEdge('edge-s');
+    render(<EdgeInspector />);
+
+    expect(screen.getByLabelText('Баллы')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Вариант ответа')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Частичный балл')).not.toBeInTheDocument();
+  });
+
+  it('changes the edge link type and writes the answer flag to the store', async () => {
+    const user = userEvent.setup();
+    useScenarioEditorStore.getState().loadGraph(decisionGraph());
+    useScenarioEditorStore.getState().selectEdge('edge-d');
+    render(<EdgeInspector />);
+
+    await user.click(screen.getByRole('radio', { name: /Правильный путь/ }));
+    expect(useScenarioEditorStore.getState().edges.find((e) => e.id === 'edge-d')?.data?.[ANSWER_EDGE_KEY]).toBe(true);
+
+    await user.click(screen.getByRole('radio', { name: /Неправильный путь/ }));
+    expect(useScenarioEditorStore.getState().edges.find((e) => e.id === 'edge-d')?.data?.[ANSWER_EDGE_KEY]).toBe(false);
+
+    await user.click(screen.getByRole('radio', { name: /Нейтральный переход/ }));
+    expect(useScenarioEditorStore.getState().edges.find((e) => e.id === 'edge-d')?.data?.[ANSWER_EDGE_KEY]).toBeUndefined();
+  });
+
+  it('edits the score and links an answer option', async () => {
+    const user = userEvent.setup();
+    useScenarioEditorStore.getState().loadGraph(decisionGraph());
+    useScenarioEditorStore.getState().selectEdge('edge-d');
+    render(<EdgeInspector />);
+
+    const score = screen.getByLabelText('Баллы');
+    await user.clear(score);
+    await user.type(score, '15');
+    expect(useScenarioEditorStore.getState().edges.find((e) => e.id === 'edge-d')?.data?.score_delta).toBe(15);
+
+    await user.selectOptions(screen.getByLabelText('Вариант ответа'), 'o1');
+    expect(useScenarioEditorStore.getState().edges.find((e) => e.id === 'edge-d')?.data?.option_id).toBe('o1');
+  });
+
+  it('deletes the selected edge via the store deleteSelected action', () => {
+    useScenarioEditorStore.getState().loadGraph(decisionGraph());
+    useScenarioEditorStore.getState().selectEdge('edge-d');
+
+    useScenarioEditorStore.getState().deleteSelected();
+
+    expect(useScenarioEditorStore.getState().edges.some((e) => e.id === 'edge-d')).toBe(false);
+    expect(useScenarioEditorStore.getState().selectedEdgeId).toBeNull();
+  });
+
+  it('round-trips edge metadata through save serialization (A6)', () => {
+    useScenarioEditorStore.getState().loadGraph({
+      nodes: [
+        {
+          id: 'decision-1',
+          type: 'decision',
+          position: { x: 0, y: 0 },
+          data: { options: [{ id: 'o1', label: 'Вариант А' }] },
+          title: 'Решение',
+        },
+        { id: 'final-1', type: 'final', position: { x: 200, y: 0 }, data: {}, title: 'Финал' },
+      ],
+      edges: [
+        {
+          id: 'edge-d',
+          source: 'decision-1',
+          target: 'final-1',
+          label: null,
+          data: { [ANSWER_EDGE_KEY]: true, score_delta: 7, partial: true, option_id: 'o1' },
+        },
+      ],
+    });
+
+    const edge = useScenarioEditorStore.getState().toGraphIn().edges.find((e) => e.id === 'edge-d');
+    expect(edge?.data).toMatchObject({ [ANSWER_EDGE_KEY]: true, score_delta: 7, partial: true, option_id: 'o1' });
+  });
+});
+
 describe('choice edge and auto-save', () => {
   beforeEach(() => {
     resetEditorStore();
@@ -345,6 +495,61 @@ describe('choice edge and auto-save', () => {
 
     expect(screen.getByText('+10')).toBeInTheDocument();
     expect(screen.getByTestId('choice-edge-edge-1')).toHaveAttribute('data-edge-state', 'success');
+  });
+
+  it('renders a neutral edge without the «−0» score label', () => {
+    render(
+      <svg>
+        <ChoiceEdge
+          id="edge-neutral"
+          source="start-1"
+          target="data-1"
+          sourceX={0}
+          sourceY={0}
+          targetX={30}
+          targetY={30}
+          sourcePosition={Position.Right}
+          targetPosition={Position.Left}
+          type="choice"
+          selected={false}
+          selectable
+          deletable
+          animated={false}
+          data={{ score_delta: 0 }}
+        />
+      </svg>,
+    );
+
+    expect(screen.getByTestId('choice-edge-edge-neutral')).toHaveAttribute('data-edge-state', 'neutral');
+    expect(screen.queryByText('−0')).not.toBeInTheDocument();
+    expect(screen.queryByText('0')).not.toBeInTheDocument();
+  });
+
+  it('renders the danger state for an incorrect edge', () => {
+    render(
+      <svg>
+        <ChoiceEdge
+          id="edge-bad"
+          source="decision-1"
+          target="final-1"
+          sourceX={0}
+          sourceY={0}
+          targetX={30}
+          targetY={30}
+          sourcePosition={Position.Right}
+          targetPosition={Position.Left}
+          type="choice"
+          selected={false}
+          selectable
+          deletable
+          animated={false}
+          data={{ [ANSWER_EDGE_KEY]: false, score_delta: -5 }}
+        />
+      </svg>,
+    );
+
+    expect(screen.getByText('−5')).toBeInTheDocument();
+    expect(screen.getByTestId('choice-edge-edge-bad')).toHaveAttribute('data-edge-state', 'danger');
   });
 
   it('debounces graph saves for exactly 30 seconds', async () => {
